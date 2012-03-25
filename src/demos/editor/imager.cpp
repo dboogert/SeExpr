@@ -99,11 +99,10 @@ class QImage* MakeImage(const std::string& exprStr, int width, int height, std::
 	}
 
 	// evaluate expression
-	unsigned char* image = new unsigned char[width*height*4];
 	double one_over_width=1./width,one_over_height=1./height;
 	double& u=expr.vars["u"].val;
 	double& v=expr.vars["v"].val;
-	unsigned char* pixel = image;
+	unsigned char pixel[4];
 	for(int row=0;row<height;row++){
 		for(int col=0;col<width;col++){
 			u=one_over_width*(col+.5);
@@ -111,13 +110,11 @@ class QImage* MakeImage(const std::string& exprStr, int width, int height, std::
 
 			SeVec3d result = expr.evaluate();
 
-			//            expr._interpreter->print();
-			pixel[0] = clamp(result[0] * 256);
-			pixel[1] = clamp(result[1] * 256);
-			pixel[2] = clamp(result[2] * 256);
+			pixel[2] = clamp(result[0] * 256.0);
+			pixel[1] = clamp(result[1] * 256.0);
+			pixel[0] = clamp(result[2] * 256.0);
 			pixel[3] = 255;
 			qimage->setPixel(QPoint(row, col), pixel[0] | (pixel[1] << 8) | (pixel[2] << 16) | (pixel[3] << 24));
-			pixel+=4;
 		}
 	}
 
