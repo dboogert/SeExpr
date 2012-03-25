@@ -114,7 +114,7 @@ class QImage* MakeImage(const std::string& exprStr, int width, int height, std::
 			pixel[1] = clamp(result[1] * 256.0);
 			pixel[0] = clamp(result[2] * 256.0);
 			pixel[3] = 255;
-			qimage->setPixel(QPoint(row, col), pixel[0] | (pixel[1] << 8) | (pixel[2] << 16) | (pixel[3] << 24));
+			qimage->setPixel(QPoint(col, row), pixel[0] | (pixel[1] << 8) | (pixel[2] << 16) | (pixel[3] << 24));
 		}
 	}
 
