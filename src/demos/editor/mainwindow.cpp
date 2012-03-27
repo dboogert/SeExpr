@@ -192,7 +192,6 @@ void MainWindow::validate(const std::vector<SeExpression::Error>& errors)
 	for(size_t i = 0; i < errors.size(); ++i)
 	{
 		const SeExpression::Error& error = errors[i];
-		std::cout << error.startPos << " " << error.endPos << " " << error.error << std::endl;
 		QString posstr;
 
 		m_console->append(QString::number(error.startPos) + ":" + QString::number(error.endPos) + " >> " + QString(error.error.c_str()));
