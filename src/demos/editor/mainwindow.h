@@ -23,6 +23,7 @@ public slots:
 	void openFile(const QString& path = QString());
 	void saveFileAs();
 	void saveFile();
+	void saveImage();
 	void TextUpdated();
 
 private:

@@ -81,6 +81,7 @@ void MainWindow::saveFile()
 	}
 }
 
+
 void MainWindow::saveFileAs()
 {
 	QString fileName;
@@ -99,9 +100,23 @@ void MainWindow::saveFileAs()
 			barray.append(m_editor->document()->toPlainText());
 			file.write(barray);
 		}
-
 	}
 }
+
+void MainWindow::saveImage()
+{
+	QString fileName;
+
+	if (fileName.isNull())
+		fileName = QFileDialog::getSaveFileName(this,
+				tr("Save Image File"), "", "PNG files (*.png)");
+
+	if (!fileName.isEmpty())
+	{
+		m_image->save(fileName);
+	}
+}
+
 
 void MainWindow::setupEditor()
 {
@@ -206,21 +221,12 @@ void MainWindow::setupFileMenu()
 	QMenu *fileMenu = new QMenu(tr("&File"), this);
 	menuBar()->addMenu(fileMenu);
 
-	fileMenu->addAction(tr("&New"), this, SLOT(newFile()),
-			QKeySequence::New);
-
-	fileMenu->addAction(tr("&Open..."), this, SLOT(openFile()),
-			QKeySequence::Open);
-
-	fileMenu->addAction(tr("&Save..."), this, SLOT(saveFile()),
-			QKeySequence::Save);
-
-	fileMenu->addAction(tr("Save As..."), this, SLOT(saveFileAs()),
-			QKeySequence::SaveAs);
-
-
-	fileMenu->addAction(tr("E&xit"), qApp, SLOT(quit()),
-			QKeySequence::Quit);
+	fileMenu->addAction(tr("&New"), this, SLOT(newFile()), QKeySequence::New);
+	fileMenu->addAction(tr("&Open..."), this, SLOT(openFile()), QKeySequence::Open);
+	fileMenu->addAction(tr("&Save..."), this, SLOT(saveFile()), QKeySequence::Save);
+	fileMenu->addAction(tr("Save As..."), this, SLOT(saveFileAs()), QKeySequence::SaveAs);
+	fileMenu->addAction(tr("Save Image..."), this, SLOT(saveImage()));
+	fileMenu->addAction(tr("E&xit"), qApp, SLOT(quit()), QKeySequence::Quit);
 }
 
 void MainWindow::setupHelpMenu()
