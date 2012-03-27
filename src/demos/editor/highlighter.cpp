@@ -1,16 +1,12 @@
 #include <QtGui>
 
 #include "highlighter.h"
-
+#include <iostream>
 Highlighter::Highlighter(QTextDocument *parent)
 : QSyntaxHighlighter(parent)
 {
 	HighlightingRule rule;
 
-	singleLineCommentFormat.setForeground(Qt::red);
-	rule.pattern = QRegExp("#[^\n]*");
-	rule.format = singleLineCommentFormat;
-	highlightingRules.append(rule);
 
 	keywordFormat.setForeground(Qt::darkBlue);
 	keywordFormat.setFontWeight(QFont::Bold);
@@ -77,10 +73,23 @@ Highlighter::Highlighter(QTextDocument *parent)
 	rule.format = functionFormat;
 	highlightingRules.append(rule);
 
+	numberFormat.setForeground(Qt::darkGreen);
+	rule.pattern = QRegExp("\\b\\d+\\.?d*\\b");
+	rule.format = numberFormat;
+	highlightingRules.append(rule);
+
+	singleLineCommentFormat.setForeground(Qt::red);
+	rule.pattern = QRegExp("#[^\n]*");
+	rule.format = singleLineCommentFormat;
+	highlightingRules.append(rule);
+
+	errorFormat.setUnderlineStyle(QTextCharFormat::WaveUnderline);
+	errorFormat.setUnderlineColor(QColor::fromRgb(200,0,0,255));
 }
 
 void Highlighter::highlightBlock(const QString &text)
 {
+	std::cout << text.toStdString() << std::endl;
 	foreach (const HighlightingRule &rule, highlightingRules) {
 		QRegExp expression(rule.pattern);
 		int index = expression.indexIn(text);
@@ -90,5 +99,4 @@ void Highlighter::highlightBlock(const QString &text)
 			index = expression.indexIn(text, index + length);
 		}
 	}
-	setCurrentBlockState(0);
 }

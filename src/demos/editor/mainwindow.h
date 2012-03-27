@@ -1,6 +1,8 @@
 #pragma once
 
 #include <QMainWindow>
+
+#include <SeExpression.h>
 #include "highlighter.h"
 
 class QTextEdit;
@@ -22,6 +24,7 @@ public slots:
 	void saveFileAs();
 	void saveFile();
 	void TextUpdated();
+
 private:
 	void setupEditor();
 	void setupFileMenu();
@@ -30,7 +33,11 @@ private:
 	void TextUpdatedImp();
 
 	void updateWindowTitle();
+	void validate(const std::vector<SeExpression::Error>& errors);
+
 	QTextEdit* m_editor;
+	bool m_editorValidate;
+
 	QTextEdit* m_console;
 
 	QGraphicsView* m_graphicsView;

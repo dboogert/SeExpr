@@ -2,11 +2,27 @@
 #include <QtGui>
 
 #include <iostream>
-#include <SeExpression.h>
 #include "imager.h"
 
+struct ScopedBool
+{
+	bool& m_value;
+
+	ScopedBool(bool& value)
+	: m_value(value)
+	{
+		m_value = true;
+	}
+
+	~ScopedBool()
+	{
+		m_value = false;
+	}
+};
+
 MainWindow::MainWindow(QWidget *parent)
-: QMainWindow(parent)
+: QMainWindow(parent),
+  m_editorValidate(false)
 {
 	setupFileMenu();
 	setupHelpMenu();
@@ -92,16 +108,16 @@ void MainWindow::setupEditor()
 	QFont font;
 	font.setFamily("Courier");
 	font.setFixedPitch(true);
-	font.setPointSize(12);
+	font.setPointSize(14);
 
 	m_editor = new QTextEdit;
 	m_editor->setFont(font);
 
 	m_highlighter = new Highlighter(m_editor->document());
 
-	QFile file("../mainwindow.h");
-	if (file.open(QFile::ReadOnly | QFile::Text))
-		m_editor->setPlainText(file.readAll());
+	QTextOption opt =  m_editor->document()->defaultTextOption();
+	opt.setWrapMode(QTextOption::NoWrap);
+	m_editor->document()->setDefaultTextOption(opt);
 
 	QDockWidget *consoleDock = new QDockWidget(tr("Console"), this);
 	consoleDock->setAllowedAreas(Qt::BottomDockWidgetArea);
@@ -126,8 +142,7 @@ void MainWindow::setupEditor()
 	outputDock->setWidget(m_graphicsView);
 	addDockWidget(Qt::RightDockWidgetArea, outputDock);
 
-	QObject::connect(m_editor, SIGNAL(textChanged(void)),
-			this, SLOT(TextUpdated(void)));
+	QObject::connect(m_editor, SIGNAL(textChanged(void)), this, SLOT(TextUpdated(void)));
 }
 
 void MainWindow::TextUpdatedImp()
@@ -144,20 +159,45 @@ void MainWindow::TextUpdatedImp()
 		m_pixmapItem->update(QRectF());
 		m_console->append(QString("valid expression"));
 	}
-	else
-	{
-		for(size_t i = 0; i < errors.size(); ++i)
-		{
-			const SeExpression::Error& error = errors[i];
-			QString posstr;
 
-			m_console->append(QString::number(error.startPos) + ":" + QString::number(error.endPos) + " >> " + QString(error.error.c_str()));
-		}
-	}
+	validate(errors);
 }
 
+void MainWindow::validate(const std::vector<SeExpression::Error>& errors)
+{
+	ScopedBool b(m_editorValidate);
+
+	QTextCursor cursor(m_editor->document());
+	cursor.select(QTextCursor::Document);
+
+	QTextCharFormat format;
+	format.setUnderlineStyle(QTextCharFormat::NoUnderline);
+	cursor.mergeCharFormat(format);
+
+	for(size_t i = 0; i < errors.size(); ++i)
+	{
+		const SeExpression::Error& error = errors[i];
+		std::cout << error.startPos << " " << error.endPos << " " << error.error << std::endl;
+		QString posstr;
+
+		m_console->append(QString::number(error.startPos) + ":" + QString::number(error.endPos) + " >> " + QString(error.error.c_str()));
+
+
+		QTextCursor cursor(m_editor->document());
+		cursor.setPosition(error.startPos);
+		cursor.movePosition(QTextCursor::NextCharacter, QTextCursor::KeepAnchor, error.endPos - error.startPos);
+		QTextCharFormat format;
+		format.setUnderlineStyle(QTextCharFormat::WaveUnderline);
+		format.setUnderlineColor(QColor::fromRgb(255,0,0,255));
+		cursor.mergeCharFormat(format);
+
+	}
+}
 void MainWindow::TextUpdated()
 {
+	if(m_editorValidate)
+		return;
+
 	TextUpdatedImp();
 }
 

@@ -29,8 +29,13 @@ private:
 
 	QVector<HighlightingRule> highlightingRules;
 
+
 	QTextCharFormat keywordFormat;
 	QTextCharFormat singleLineCommentFormat;
 	QTextCharFormat quotationFormat;
 	QTextCharFormat functionFormat;
+
+	QTextCharFormat numberFormat;
+
+	QTextCharFormat errorFormat;
 };
