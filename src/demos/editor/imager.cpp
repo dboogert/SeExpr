@@ -44,6 +44,13 @@
 
 #include <QtGui>
 
+#include "imager.h"
+
+namespace
+{
+	QMutex mutex;
+}
+
 //! Simple image synthesizer expression class to support our function grapher
 class ImageSynthExpr : public SeExpression
 {
@@ -74,49 +81,146 @@ public:
 	}
 };
 
-
 double clamp(double x){return std::max(0.,std::min(255.,x));}
 
-class QImage* MakeImage(const std::string& exprStr, int width, int height, std::vector<SeExpression::Error>& errors)
+Imager::Imager(int width, int height)
+: m_width(width),
+  m_height(height),
+  m_displayImage(NULL),
+  m_renderThread(NULL)
 {
-	QImage* qimage = new QImage(width, height, QImage::Format_ARGB32);
-	if (exprStr.size() == 0)
-		return qimage;
+	m_displayImage = new QImage(m_width, m_height, QImage::Format_ARGB32);
+	m_renderThread = new Imager::RenderThread(m_expression, m_width, m_height, m_displayImage, m_errors);
+	m_renderThread->start(QThread::NormalPriority);
+}
 
-	ImageSynthExpr expr(exprStr);
+Imager::~Imager()
+{
+	delete m_renderThread;
+}
 
-	// make variables
-	expr.vars["u"]=ImageSynthExpr::Var(0.);
-	expr.vars["v"]=ImageSynthExpr::Var(0.);
-	expr.vars["w"]=ImageSynthExpr::Var(width);
-	expr.vars["h"]=ImageSynthExpr::Var(height);
+void Imager::UpdateExpression(const std::string& exprStr)
+{
+	mutex.lock();
+	m_expression = exprStr;
+	mutex.unlock();
+}
 
-	// check if expression is valid
-	bool valid=expr.isValid();
-	if(!valid){
-		errors = expr.getErrors();
-		return qimage;
-	}
 
-	// evaluate expression
-	double one_over_width=1./width,one_over_height=1./height;
-	double& u=expr.vars["u"].val;
-	double& v=expr.vars["v"].val;
-	unsigned char pixel[4];
-	for(int row=0;row<height;row++){
-		for(int col=0;col<width;col++){
-			u=one_over_width*(col+.5);
-			v=one_over_height*(row+.5);
+QPixmap* Imager::GetPixmap()
+{
+	QPixmap* pixmap = new QPixmap();
+	mutex.lock();
+	pixmap->convertFromImage(*m_displayImage);
+	mutex.unlock();
 
-			SeVec3d result = expr.evaluate();
+	return pixmap;
+}
 
-			pixel[2] = clamp(result[0] * 256.0);
-			pixel[1] = clamp(result[1] * 256.0);
-			pixel[0] = clamp(result[2] * 256.0);
-			pixel[3] = 255;
-			qimage->setPixel(QPoint(col, row), pixel[0] | (pixel[1] << 8) | (pixel[2] << 16) | (pixel[3] << 24));
+QImage* Imager::GetImage()
+{
+	return m_displayImage;
+}
+
+std::vector<SeExpression::Error> Imager::GetErrors() const
+{
+	mutex.lock();
+	std::vector<SeExpression::Error> errors = m_errors;
+	mutex.unlock();
+
+	return errors;
+}
+
+Imager::RenderThread::RenderThread(const std::string& expression, int width, int height, QImage* displayImage, std::vector<SeExpression::Error>& errors)
+: m_expression(expression),
+  m_errors(errors),
+  m_displayImage(displayImage),
+  m_width(width),
+  m_height(height)
+{
+	m_renderImage = new QImage(m_width, m_height, QImage::Format_ARGB32);
+}
+
+void Imager::RenderThread::UpdateDisplayImage()
+{
+	mutex.lock();
+	*m_displayImage = m_renderImage->copy(QRect());
+	mutex.unlock();
+}
+
+void Imager::RenderThread::run()
+{
+	while(true)
+	{
+		mutex.lock();
+		m_currentExpression = m_expression;
+		mutex.unlock();
+
+		if (m_lastExpression != m_currentExpression)
+		{
+			m_lastExpression = m_currentExpression;
+
+			ImageSynthExpr expr(m_currentExpression);
+
+			// make variables
+			expr.vars["u"]=ImageSynthExpr::Var(0.);
+			expr.vars["v"]=ImageSynthExpr::Var(0.);
+			expr.vars["w"]=ImageSynthExpr::Var(m_width);
+			expr.vars["h"]=ImageSynthExpr::Var(m_height);
+
+			// check if expression is valid
+			bool valid=expr.isValid();
+			if(!valid)
+			{
+				m_currentErrors = expr.getErrors();
+				continue;
+			}
+			else
+			{
+				m_currentErrors = std::vector<SeExpression::Error>();
+			}
+
+
+			// evaluate expression
+			double one_over_width = 1. / m_width;
+			double one_over_height = 1. / m_height;
+
+			double& u=expr.vars["u"].val;
+			double& v=expr.vars["v"].val;
+
+			unsigned char pixel[4];
+			QTime timer;
+			timer.start();
+
+			for(int row=0;row < m_height;row++)
+			{
+				for(int col=0;col < m_width;col++)
+				{
+					u=one_over_width*(col+.5);
+					v=one_over_height*(row+.5);
+
+					SeVec3d result = expr.evaluate();
+
+					pixel[2] = clamp(result[0] * 256.0);
+					pixel[1] = clamp(result[1] * 256.0);
+					pixel[0] = clamp(result[2] * 256.0);
+					pixel[3] = 255;
+					m_renderImage->setPixel(QPoint(col, row), pixel[0] | (pixel[1] << 8) | (pixel[2] << 16) | (pixel[3] << 24));
+				}
+				if (timer.elapsed() > 750)
+				{
+					UpdateDisplayImage();
+					timer.restart();
+				}
+			}
+			UpdateDisplayImage();
 		}
-	}
 
-	return qimage;
+		mutex.lock();
+		m_errors = m_currentErrors;
+		mutex.unlock();
+
+
+		msleep(100);
+	}
 }

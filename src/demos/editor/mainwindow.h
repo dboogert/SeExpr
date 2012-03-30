@@ -4,12 +4,14 @@
 
 #include <SeExpression.h>
 #include "highlighter.h"
+#include "imager.h"
 
 class QTextEdit;
 class QGraphicsView;
 class QGraphicsScene;
 class QPixmap;
 class QGraphicsPixmapItem;
+class QWebView;
 
 class MainWindow : public QMainWindow
 {
@@ -25,7 +27,7 @@ public slots:
 	void saveFile();
 	void saveImage();
 	void TextUpdated();
-
+	void ImageUpdated();
 private:
 	void setupEditor();
 	void setupFileMenu();
@@ -44,13 +46,17 @@ private:
 	QGraphicsView* m_graphicsView;
 	QGraphicsScene* m_graphicsScene;
 
+	QWebView* m_webView;
+
 	QPixmap* m_pixmap;
 	QImage* m_image;
 	QGraphicsPixmapItem* m_pixmapItem;
 
 	Highlighter* m_highlighter;
-
+	Imager* m_imager;
 	QString m_filename;
 
+	QTimer* m_timer;
 
+	std::vector<SeExpression::Error> m_lastDisplayedErrors;
 };

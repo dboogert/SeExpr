@@ -1,5 +1,6 @@
 cmake_minimum_required(VERSION 2.8)
 
+set(QT_USE_QTWEBKIT TRUE)
 find_package(Qt4 REQUIRED)
 
 set(src main.cpp mainwindow.cpp highlighter.cpp imager.cpp)

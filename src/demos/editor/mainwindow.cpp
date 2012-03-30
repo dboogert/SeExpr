@@ -1,5 +1,6 @@
 #include "mainwindow.h"
 #include <QtGui>
+#include <QWebView>
 
 #include <iostream>
 #include "imager.h"
@@ -145,10 +146,9 @@ void MainWindow::setupEditor()
 	QDockWidget* outputDock = new QDockWidget(tr("Output"), this);
 	outputDock->setAllowedAreas(Qt::RightDockWidgetArea | Qt::LeftDockWidgetArea);
 	m_graphicsScene = new QGraphicsScene;
-	m_image = new QImage(512, 512, QImage::Format_ARGB32);
-	m_image->setPixel(QPoint(100,100), 0xFF000000);
 	m_pixmap = new QPixmap;
-	m_pixmap->convertFromImage(*m_image);
+
+	m_imager = new Imager(1024, 1024);
 
 	m_pixmapItem = m_graphicsScene->addPixmap(*m_pixmap);
 
@@ -157,30 +157,56 @@ void MainWindow::setupEditor()
 	outputDock->setWidget(m_graphicsView);
 	addDockWidget(Qt::RightDockWidgetArea, outputDock);
 
+	m_timer = new QTimer(this);
+	connect(m_timer, SIGNAL(timeout()), this, SLOT(ImageUpdated()));
+	m_timer->start(500);
+
 	QObject::connect(m_editor, SIGNAL(textChanged(void)), this, SLOT(TextUpdated(void)));
+
+	m_webView = new QWebView();
+	m_webView->load(QUrl("http://www.google.com"));
+
+	QDockWidget* helpDock = new QDockWidget(tr("Help"), this);
+	helpDock->setAllowedAreas(Qt::RightDockWidgetArea | Qt::LeftDockWidgetArea);
+	helpDock->setWidget(m_webView);
+	addDockWidget(Qt::RightDockWidgetArea, helpDock);
 }
 
 void MainWindow::TextUpdatedImp()
 {
-	std::vector<SeExpression::Error> errors;
-	QImage* image = MakeImage(m_editor->document()->toPlainText().toStdString(), 512, 512, errors);
+	std::string expression = m_editor->document()->toPlainText().toStdString();
 
-	m_console->clear();
-	if (errors.size() == 0)
-	{
-		m_image = image;
+	m_imager->UpdateExpression(expression);
+}
 
-		m_pixmap->convertFromImage(*m_image);
-		m_pixmapItem->update(QRectF());
-		m_console->append(QString("valid expression"));
-	}
+bool operator==(const SeExpression::Error& lhs, const SeExpression::Error& rhs)
+{
+	if (lhs.endPos != rhs.endPos)
+		return false;
 
-	validate(errors);
+	if (lhs.startPos != rhs.startPos)
+		return false;
+
+	if (lhs.error != rhs.error)
+		return false;
+
+	return true;
 }
 
 void MainWindow::validate(const std::vector<SeExpression::Error>& errors)
 {
 	ScopedBool b(m_editorValidate);
+
+//	if (m_lastDisplayedErrors == errors)
+//		return;
+
+	m_console->clear();
+
+	if (errors.size() == 0)
+	{
+
+		m_console->append(QString("valid expression"));
+	}
 
 	QTextCursor cursor(m_editor->document());
 	cursor.select(QTextCursor::Document);
@@ -196,16 +222,17 @@ void MainWindow::validate(const std::vector<SeExpression::Error>& errors)
 
 		m_console->append(QString::number(error.startPos) + ":" + QString::number(error.endPos) + " >> " + QString(error.error.c_str()));
 
-
-		QTextCursor cursor(m_editor->document());
 		cursor.setPosition(error.startPos);
 		cursor.movePosition(QTextCursor::NextCharacter, QTextCursor::KeepAnchor, error.endPos - error.startPos);
 		QTextCharFormat format;
 		format.setUnderlineStyle(QTextCharFormat::WaveUnderline);
 		format.setUnderlineColor(QColor::fromRgb(255,0,0,255));
 		cursor.mergeCharFormat(format);
-
 	}
+
+	m_editor->update(QRect());
+
+	m_lastDisplayedErrors = errors;
 }
 void MainWindow::TextUpdated()
 {
@@ -244,4 +271,26 @@ void MainWindow::updateWindowTitle()
 		filename_info = tr("New");
 
 	setWindowTitle(tr("Se.Expr Editor [") + filename_info + tr("]"));
+}
+
+void MainWindow::ImageUpdated()
+{
+	QPixmap* pixmap = m_imager->GetPixmap();
+
+	if (pixmap)
+	{
+		//delete m_pixmap;
+		m_pixmapItem->setPixmap(*pixmap);
+		m_pixmapItem->update(QRectF());
+	}
+//	m_image = m_imager->GetImage();
+//
+//	if(m_image)
+//	{
+//		m_pixmap->convertFromImage(*m_image);
+//		m_pixmapItem->update(QRectF());
+//	}
+
+	validate(m_imager->GetErrors());
+
 }
