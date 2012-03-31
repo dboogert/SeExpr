@@ -23,7 +23,9 @@ struct ScopedBool
 
 MainWindow::MainWindow(QWidget *parent)
 : QMainWindow(parent),
-  m_editorValidate(false)
+  m_editorValidate(false),
+  m_autoCompleteActive(false),
+  m_autoCompleteStartPosition(-1)
 {
 	setupFileMenu();
 	setupHelpMenu();
@@ -167,14 +169,31 @@ void MainWindow::setupEditor()
 	m_webView->load(QUrl("http://www.google.com"));
 
 	QDockWidget* helpDock = new QDockWidget(tr("Help"), this);
-	helpDock->setAllowedAreas(Qt::RightDockWidgetArea | Qt::LeftDockWidgetArea);
+	helpDock->setAllowedAreas(Qt::RightDockWidgetArea);
 	helpDock->setWidget(m_webView);
 	addDockWidget(Qt::RightDockWidgetArea, helpDock);
+
+	m_autoCompleteList = new QListWidget(m_editor);
+	m_autoCompleteList->setFixedSize(QSize(200,100));
+	m_autoCompleteList->addItem(new QListWidgetItem(tr("a function")));
+	m_autoCompleteList->addItem(new QListWidgetItem(tr("b function")));
+	m_autoCompleteList->addItem(new QListWidgetItem(tr("c function")));
+	m_autoCompleteList->hide();
+
+	QObject::connect(m_editor, SIGNAL(cursorPositionChanged()), SLOT(CursorPositionChanged(void)));
 }
 
 void MainWindow::TextUpdatedImp()
 {
 	std::string expression = m_editor->document()->toPlainText().toStdString();
+
+	if (m_autoCompleteActive)
+	{
+		if (m_editor->textCursor().position() < m_autoCompleteStartPosition)
+		{
+			AutocompleteDisabled();
+		}
+	}
 
 	m_imager->UpdateExpression(expression);
 }
@@ -242,6 +261,24 @@ void MainWindow::TextUpdated()
 	TextUpdatedImp();
 }
 
+void MainWindow::AutocompleteEnabled()
+{
+	std::cout << "Autocomplete " << std::endl;
+	QRect r = m_editor->cursorRect();
+	m_autoCompleteList->move(r.bottomLeft());
+
+	m_autoCompleteList->show();
+	m_autoCompleteActive = true;
+
+	m_autoCompleteStartPosition = m_editor->textCursor().position();
+}
+
+void MainWindow::AutocompleteDisabled()
+{
+	m_autoCompleteList->hide();
+	m_autoCompleteActive = false;
+}
+
 void MainWindow::setupFileMenu()
 {
 	QMenu *fileMenu = new QMenu(tr("&File"), this);
@@ -252,6 +289,8 @@ void MainWindow::setupFileMenu()
 	fileMenu->addAction(tr("&Save..."), this, SLOT(saveFile()), QKeySequence::Save);
 	fileMenu->addAction(tr("Save As..."), this, SLOT(saveFileAs()), QKeySequence::SaveAs);
 	fileMenu->addAction(tr("Save Image..."), this, SLOT(saveImage()));
+	fileMenu->addAction(tr("Auto Complete"), this, SLOT(AutocompleteEnabled()), QKeySequence(Qt::META + Qt::Key_Space));
+	fileMenu->addAction(tr("Leave Autocomplete"), this, SLOT(AutocompleteDisabled()), QKeySequence(Qt::Key_Escape));
 	fileMenu->addAction(tr("E&xit"), qApp, SLOT(quit()), QKeySequence::Quit);
 }
 
@@ -283,14 +322,13 @@ void MainWindow::ImageUpdated()
 		m_pixmapItem->setPixmap(*pixmap);
 		m_pixmapItem->update(QRectF());
 	}
-//	m_image = m_imager->GetImage();
-//
-//	if(m_image)
-//	{
-//		m_pixmap->convertFromImage(*m_image);
-//		m_pixmapItem->update(QRectF());
-//	}
 
 	validate(m_imager->GetErrors());
-
 }
+
+void MainWindow::CursorPositionChanged()
+{
+	//QRect r = m_editor->cursorRect();
+	//m_autoCompleteList->move(r.bottomLeft());
+}
+

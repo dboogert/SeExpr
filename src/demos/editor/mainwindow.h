@@ -12,6 +12,7 @@ class QGraphicsScene;
 class QPixmap;
 class QGraphicsPixmapItem;
 class QWebView;
+class QListWidget;
 
 class MainWindow : public QMainWindow
 {
@@ -28,6 +29,9 @@ public slots:
 	void saveImage();
 	void TextUpdated();
 	void ImageUpdated();
+	void CursorPositionChanged();
+	void AutocompleteEnabled();
+	void AutocompleteDisabled();
 private:
 	void setupEditor();
 	void setupFileMenu();
@@ -58,5 +62,9 @@ private:
 
 	QTimer* m_timer;
 
+	QListWidget* m_autoCompleteList;
 	std::vector<SeExpression::Error> m_lastDisplayedErrors;
+
+	bool m_autoCompleteActive;
+	int m_autoCompleteStartPosition;
 };
