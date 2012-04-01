@@ -1,10 +1,12 @@
 #pragma once
 
-#include <QMainWindow>
-
-#include <SeExpression.h>
 #include "highlighter.h"
 #include "imager.h"
+#include "autocomplete.h"
+
+#include <SeExpression.h>
+
+#include <QMainWindow>
 
 class QTextEdit;
 class QGraphicsView;
@@ -13,6 +15,20 @@ class QPixmap;
 class QGraphicsPixmapItem;
 class QWebView;
 class QListWidget;
+
+
+class AutoCompleteKeyboardIntercept : public QObject
+{
+	Q_OBJECT;
+
+signals:
+	void NextItem();
+	void PreviousItem();
+
+protected:
+	bool eventFilter(QObject *obj, QEvent *event);
+};
+
 
 class MainWindow : public QMainWindow
 {
@@ -36,8 +52,10 @@ private:
 	void setupEditor();
 	void setupFileMenu();
 	void setupHelpMenu();
+	void setupAutoComplete();
 
 	void TextUpdatedImp();
+	void UpdateAutocomplete(bool onEnabled);
 
 	void updateWindowTitle();
 	void validate(const std::vector<SeExpression::Error>& errors);
@@ -62,6 +80,7 @@ private:
 
 	QTimer* m_timer;
 
+	Autocomplete m_autoComplete;
 	QListWidget* m_autoCompleteList;
 	std::vector<SeExpression::Error> m_lastDisplayedErrors;
 

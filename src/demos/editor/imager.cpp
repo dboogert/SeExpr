@@ -35,16 +35,17 @@
 /**
    @file imageSynth.cpp
  */
+#include "imager.h"
+
+#include <SeExpression.h>
+
+#include <QtGui>
+
 #include <map>
 #include <cstdlib>
 #include <cstdio>
 #include <cstring>
-#include <SeExpression.h>
 #include <fstream>
-
-#include <QtGui>
-
-#include "imager.h"
 
 namespace
 {

@@ -1,0 +1,21 @@
+<reference>
+	<config resolution="256x256"/>
+	<function name="sin" short-desc="standard trig function sin">
+		<description>
+			<example mode="graph">sin(20 * x)</example>
+		</description>
+		<examples>
+			<example mode="image" short-desc="vertical bars">
+				<expr>sin(10 * u)</expr>
+			</example>
+			<example mode="image" short-desc="horizontal bars">
+				<expr>sin(10 * v)</expr>
+			</example>
+		</examples>
+	</function/>
+	<function name="cos" short-desc="standard trig function cos">
+		<description>
+			<example mode="graph">cos(20 * x)</example>
+		</description>
+	</function>
+</reference>
