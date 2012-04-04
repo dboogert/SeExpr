@@ -1,0 +1,3 @@
+s = cellnoise(30 * [u,v,0]);
+c = ccellnoise(30 * [u,v,0]);
+c

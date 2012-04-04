@@ -146,9 +146,9 @@ void MainWindow::setupEditor()
 {
 
 	QFont font;
-	font.setFamily("Courier");
+	font.setFamily("Lucida");
 	font.setFixedPitch(true);
-	font.setPointSize(14);
+	font.setPointSize(12);
 
 
 	m_editor = new QTextEdit;
@@ -160,17 +160,17 @@ void MainWindow::setupEditor()
 	opt.setWrapMode(QTextOption::NoWrap);
 	m_editor->document()->setDefaultTextOption(opt);
 
-	QDockWidget *consoleDock = new QDockWidget(tr("Console"), this);
-	consoleDock->setAllowedAreas(Qt::BottomDockWidgetArea);
-	m_console = new QTextEdit(consoleDock);
+	m_consoleDock = new QDockWidget(tr("Console"), this);
+	m_consoleDock->setAllowedAreas(Qt::BottomDockWidgetArea);
+	m_console = new QTextEdit(m_consoleDock);
 	m_console->setReadOnly(true);
 	m_console->setFont(font);
 	m_console->setTextColor(QColor(200,200,200,255));
-	consoleDock->setWidget(m_console);
-	addDockWidget(Qt::BottomDockWidgetArea ,consoleDock);
+	m_consoleDock->setWidget(m_console);
+	addDockWidget(Qt::BottomDockWidgetArea , m_consoleDock);
 
-	QDockWidget* outputDock = new QDockWidget(tr("Output"), this);
-	outputDock->setAllowedAreas(Qt::RightDockWidgetArea | Qt::LeftDockWidgetArea);
+	m_outputDock = new QDockWidget(tr("Output"), this);
+	m_outputDock->setAllowedAreas(Qt::RightDockWidgetArea | Qt::LeftDockWidgetArea);
 	m_graphicsScene = new QGraphicsScene;
 	m_pixmap = new QPixmap;
 
@@ -181,11 +181,11 @@ void MainWindow::setupEditor()
 
 	m_pixmapItem = m_graphicsScene->addPixmap(*m_pixmap);
 
-	m_graphicsView = new QGraphicsView(m_graphicsScene, outputDock);
+	m_graphicsView = new QGraphicsView(m_graphicsScene, m_outputDock);
 	m_graphicsView->setMinimumSize(width + 32, height +32);
 	m_graphicsView->setBackgroundBrush(QBrush(QColor(48, 48, 48), Qt::SolidPattern));
-	outputDock->setWidget(m_graphicsView);
-	addDockWidget(Qt::RightDockWidgetArea, outputDock);
+	m_outputDock->setWidget(m_graphicsView);
+	addDockWidget(Qt::RightDockWidgetArea, m_outputDock);
 
 	m_timer = new QTimer(this);
 	connect(m_timer, SIGNAL(timeout()), this, SLOT(ImageUpdated()));
@@ -208,10 +208,44 @@ void MainWindow::setupEditor()
 	m_autoCompleteList->setFixedSize(QSize(200,500));
 	m_autoCompleteList->hide();
 
+	QObject::connect(m_autoCompleteList, SIGNAL(itemDoubleClicked(QListWidgetItem*)), this, SLOT(AutocompleteItemSelected(QListWidgetItem *)));
+	//QObject::connect(m_autoCompleteList, SIGNAL(itemClicked(QListWidgetItem*)), this, SLOT(AutocompleteItemSelected(QListWidgetItem *)));
+
 	QObject::connect(m_editor, SIGNAL(cursorPositionChanged()), SLOT(CursorPositionChanged(void)));
 
 //	AutoCompleteKeyboardIntercept *autocompleteIntercept = new AutoCompleteKeyboardIntercept();
 //	m_editor->installEventFilter(autocompleteIntercept);
+}
+
+void MainWindow::AutocompleteItemSelected(QListWidgetItem * item)
+{
+	QList<QListWidgetItem*> items = m_autoCompleteList->selectedItems();
+	if (items.size() > 0 )
+	{
+		QTextCursor c2 = m_editor->textCursor();
+		c2.movePosition(QTextCursor::StartOfWord, QTextCursor::MoveAnchor, 1);
+		c2.movePosition(QTextCursor::EndOfWord, QTextCursor::KeepAnchor,1);
+
+		m_autoCompleteActive = false;
+		m_autoCompleteList->hide();
+
+		c2.insertText(items[0]->text());
+
+		c2.movePosition(QTextCursor::StartOfWord, QTextCursor::MoveAnchor, 1);
+		m_editor->setFocus();
+	}
+	m_autoCompleteActive = false;
+	m_autoCompleteList->hide();
+}
+
+void MainWindow::ShowOutputWindow()
+{
+	m_outputDock->show();
+}
+
+void MainWindow::ShowConsoleWindow()
+{
+	m_consoleDock->show();
 }
 
 void MainWindow::TextUpdatedImp()
@@ -270,7 +304,7 @@ void MainWindow::validate(const std::vector<SeExpression::Error>& errors)
 		cursor.movePosition(QTextCursor::NextCharacter, QTextCursor::KeepAnchor, error.endPos - error.startPos);
 		QTextCharFormat format;
 		format.setUnderlineStyle(QTextCharFormat::WaveUnderline);
-		format.setUnderlineColor(QColor::fromRgb(255,0,0,255));
+		format.setUnderlineColor(QColor::fromRgb(200, 75, 50, 255));
 		cursor.mergeCharFormat(format);
 	}
 
@@ -364,6 +398,8 @@ void MainWindow::setupFileMenu()
 	fileMenu->addAction(tr("Auto Complete"), this, SLOT(AutocompleteEnabled()), QKeySequence(Qt::META + Qt::Key_Space));
 	fileMenu->addAction(tr("Leave Autocomplete"), this, SLOT(AutocompleteDisabled()), QKeySequence(Qt::Key_Escape));
 	fileMenu->addAction(tr("E&xit"), qApp, SLOT(quit()), QKeySequence::Quit);
+	fileMenu->addAction(tr("output"), this, SLOT(ShowOutputWindow()));
+	fileMenu->addAction(tr("console"), this, SLOT(ShowConsoleWindow()));
 }
 
 void MainWindow::setupHelpMenu()

@@ -1,0 +1,3 @@
+s = boxstep(u,0.4);
+v = boxstep([u,v,0], [0.2,0.4,0]);
+v

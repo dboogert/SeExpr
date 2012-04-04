@@ -15,8 +15,8 @@ class QPixmap;
 class QGraphicsPixmapItem;
 class QWebView;
 class QListWidget;
-
-
+class QListWidgetItem;
+class QDockWidget;
 class AutoCompleteKeyboardIntercept : public QObject
 {
 	Q_OBJECT;
@@ -48,6 +48,9 @@ public slots:
 	void CursorPositionChanged();
 	void AutocompleteEnabled();
 	void AutocompleteDisabled();
+	void AutocompleteItemSelected(QListWidgetItem * item);
+	void ShowOutputWindow();
+	void ShowConsoleWindow();
 private:
 	void setupEditor();
 	void setupFileMenu();
@@ -77,6 +80,9 @@ private:
 	Highlighter* m_highlighter;
 	Imager* m_imager;
 	QString m_filename;
+
+	QDockWidget* m_outputDock;
+	QDockWidget* m_consoleDock;
 
 	QTimer* m_timer;
 

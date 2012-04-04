@@ -8,7 +8,7 @@ Highlighter::Highlighter(QTextDocument *parent)
 	HighlightingRule rule;
 
 
-	keywordFormat.setForeground(Qt::darkBlue);
+	keywordFormat.setForeground(QColor(100,100,200));
 	keywordFormat.setFontWeight(QFont::Bold);
 	QStringList keywordPatterns;
 	keywordPatterns
@@ -62,23 +62,23 @@ Highlighter::Highlighter(QTextDocument *parent)
 		highlightingRules.append(rule);
 	}
 
-	quotationFormat.setForeground(Qt::darkGreen);
+	quotationFormat.setForeground(QColor(50,200,50));
 	rule.pattern = QRegExp("\".*\"");
 	rule.format = quotationFormat;
 	highlightingRules.append(rule);
 
 	functionFormat.setFontItalic(true);
-	functionFormat.setForeground(Qt::blue);
+	functionFormat.setForeground(QColor(100,100,200));
 	rule.pattern = QRegExp("\\b[A-Za-z0-9_]+(?=\\()");
 	rule.format = functionFormat;
 	highlightingRules.append(rule);
 
-	numberFormat.setForeground(Qt::darkGreen);
+	numberFormat.setForeground(QColor(50,200,50));
 	rule.pattern = QRegExp("\\b\\d+\\.?d*\\b");
 	rule.format = numberFormat;
 	highlightingRules.append(rule);
 
-	singleLineCommentFormat.setForeground(Qt::red);
+	singleLineCommentFormat.setForeground(QColor(200,50,50));
 	rule.pattern = QRegExp("#[^\n]*");
 	rule.format = singleLineCommentFormat;
 	highlightingRules.append(rule);
