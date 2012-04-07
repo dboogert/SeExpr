@@ -1,7 +1,0 @@
-uv = [u,v,0];
-high = 10 * uv;
-vhigh = 50 * uv;
-t = 1.7;
-offset = 1.3;
-
-2 * fbm(high + t * fbm(high)) * cnoise(4 * uv + offset) 

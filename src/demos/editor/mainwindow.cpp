@@ -1,6 +1,7 @@
 #include "mainwindow.h"
 #include "imager.h"
-
+#include "autocompletelistwidget.h"
+#include "codeeditor.h"
 
 #include <QtGui>
 #include <QWebView>
@@ -137,7 +138,9 @@ void MainWindow::saveImage()
 
 	if (!fileName.isEmpty())
 	{
-		m_image->save(fileName);
+		QPixmap* pixmap = m_imager->GetPixmap();
+
+		pixmap->save(fileName);
 	}
 }
 
@@ -150,11 +153,7 @@ void MainWindow::setupEditor()
 	font.setFixedPitch(true);
 	font.setPointSize(12);
 
-
-	m_editor = new QTextEdit;
-	m_editor->setFont(font);
-	m_editor->setTextColor(QColor(200,200,200,255));
-	m_highlighter = new Highlighter(m_editor->document());
+	m_editor = new CodeEditor(NULL, font);
 
 	QTextOption opt =  m_editor->document()->defaultTextOption();
 	opt.setWrapMode(QTextOption::NoWrap);
@@ -204,9 +203,12 @@ void MainWindow::setupEditor()
 //	helpDock->setWidget(m_webView);
 //	addDockWidget(Qt::RightDockWidgetArea, helpDock);
 
-	m_autoCompleteList = new QListWidget(m_editor);
+	m_autoCompleteList = new AutoCompleteListWidget(m_editor);
 	m_autoCompleteList->setFixedSize(QSize(200,500));
 	m_autoCompleteList->hide();
+	m_editor->setFocus();
+	m_autoCompleteActive = false;
+
 
 	QObject::connect(m_autoCompleteList, SIGNAL(itemDoubleClicked(QListWidgetItem*)), this, SLOT(AutocompleteItemSelected(QListWidgetItem *)));
 	//QObject::connect(m_autoCompleteList, SIGNAL(itemClicked(QListWidgetItem*)), this, SLOT(AutocompleteItemSelected(QListWidgetItem *)));
@@ -236,6 +238,7 @@ void MainWindow::AutocompleteItemSelected(QListWidgetItem * item)
 	}
 	m_autoCompleteActive = false;
 	m_autoCompleteList->hide();
+	m_editor->setFocus();
 }
 
 void MainWindow::ShowOutputWindow()
@@ -312,6 +315,7 @@ void MainWindow::validate(const std::vector<SeExpression::Error>& errors)
 
 	m_lastDisplayedErrors = errors;
 }
+
 void MainWindow::TextUpdated()
 {
 	if(m_editorValidate)
@@ -329,16 +333,25 @@ void MainWindow::UpdateAutocomplete(bool onEnabled)
 	m_autoComplete.UpdateFilter(c.selectedText().toStdString());
 	const std::vector<Autocomplete::Option>& filteredOptions =  m_autoComplete.FilteredOptions();
 	m_autoCompleteList->clear();
+
+
 	for (size_t i = 0; i < filteredOptions.size(); ++i)
 	{
 		QListWidgetItem* item = new QListWidgetItem(tr(filteredOptions[i].name.c_str()), m_autoCompleteList);
 		m_autoCompleteList->addItem(item);
 	}
 
+	m_autoCompleteList->setSelectionMode(QAbstractItemView::SingleSelection);
+
+	std::cout << "Update Auto Complete" << std::endl;
+
+
 	if (filteredOptions.size() == 0)
 	{
 		m_autoCompleteActive = false;
 		m_autoCompleteList->hide();
+		m_editor->setFocus();
+		return;
 	}
 
 	if (filteredOptions.size() == 1 && onEnabled)
@@ -351,19 +364,28 @@ void MainWindow::UpdateAutocomplete(bool onEnabled)
 
 		m_autoCompleteActive = false;
 		m_autoCompleteList->hide();
+		m_editor->setFocus();
 
 		c2.insertText(QString(tr(insertionString.c_str())));
+		return;
 	}
 
 	if (m_editor->textCursor().position() < m_autoCompleteStartPosition)
 	{
 		AutocompleteDisabled();
+		return;
 	}
+
+	m_autoCompleteList->setCurrentItem(m_autoCompleteList->item(0));
 }
 
 void MainWindow::AutocompleteEnabled()
 {
+	if (m_autoCompleteActive)
+		return;
+
 	std::cout << "Autocomplete " << std::endl;
+
 
 	QTextCursor c = m_editor->textCursor();
 
@@ -372,6 +394,7 @@ void MainWindow::AutocompleteEnabled()
 	m_autoCompleteList->move(r.bottomLeft());
 
 	m_autoCompleteList->show();
+	m_autoCompleteList->setFocus();
 	m_autoCompleteActive = true;
 
 	UpdateAutocomplete(true);
@@ -382,6 +405,7 @@ void MainWindow::AutocompleteEnabled()
 void MainWindow::AutocompleteDisabled()
 {
 	m_autoCompleteList->hide();
+	m_editor->setFocus();
 	m_autoCompleteActive = false;
 }
 
@@ -398,8 +422,11 @@ void MainWindow::setupFileMenu()
 	fileMenu->addAction(tr("Auto Complete"), this, SLOT(AutocompleteEnabled()), QKeySequence(Qt::META + Qt::Key_Space));
 	fileMenu->addAction(tr("Leave Autocomplete"), this, SLOT(AutocompleteDisabled()), QKeySequence(Qt::Key_Escape));
 	fileMenu->addAction(tr("E&xit"), qApp, SLOT(quit()), QKeySequence::Quit);
-	fileMenu->addAction(tr("output"), this, SLOT(ShowOutputWindow()));
-	fileMenu->addAction(tr("console"), this, SLOT(ShowConsoleWindow()));
+
+	QMenu *windowMenu = new QMenu(tr("&Window"), this);
+	menuBar()->addMenu(windowMenu);
+	windowMenu->addAction(tr("output"), this, SLOT(ShowOutputWindow()));
+	windowMenu->addAction(tr("console"), this, SLOT(ShowConsoleWindow()));
 }
 
 void MainWindow::setupHelpMenu()
@@ -474,7 +501,6 @@ void MainWindow::setupAutoComplete()
 	m_autoComplete.AddItem(Autocomplete::Option(Autocomplete::Function, "pick"));
 	m_autoComplete.AddItem(Autocomplete::Option(Autocomplete::Function, "choose"));
 	m_autoComplete.AddItem(Autocomplete::Option(Autocomplete::Function, "wchoose"));
-
 }
 
 void MainWindow::updateWindowTitle()
@@ -493,9 +519,11 @@ void MainWindow::ImageUpdated()
 	if (pixmap)
 	{
 		//delete m_pixmap;
+		qApp->setWindowIcon(QIcon(*pixmap));
 		m_pixmapItem->setPixmap(*pixmap);
 		m_pixmapItem->update(QRectF());
 	}
+
 
 	validate(m_imager->GetErrors());
 }

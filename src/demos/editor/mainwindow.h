@@ -8,6 +8,7 @@
 
 #include <QMainWindow>
 
+class CodeEditor;
 class QTextEdit;
 class QGraphicsView;
 class QGraphicsScene;
@@ -16,7 +17,9 @@ class QGraphicsPixmapItem;
 class QWebView;
 class QListWidget;
 class QListWidgetItem;
+class AutoCompleteListWidget;
 class QDockWidget;
+
 class AutoCompleteKeyboardIntercept : public QObject
 {
 	Q_OBJECT;
@@ -63,7 +66,7 @@ private:
 	void updateWindowTitle();
 	void validate(const std::vector<SeExpression::Error>& errors);
 
-	QTextEdit* m_editor;
+	CodeEditor* m_editor;
 	bool m_editorValidate;
 
 	QTextEdit* m_console;
@@ -87,7 +90,7 @@ private:
 	QTimer* m_timer;
 
 	Autocomplete m_autoComplete;
-	QListWidget* m_autoCompleteList;
+	AutoCompleteListWidget* m_autoCompleteList;
 	std::vector<SeExpression::Error> m_lastDisplayedErrors;
 
 	bool m_autoCompleteActive;
