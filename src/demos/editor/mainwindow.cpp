@@ -10,22 +10,6 @@
 
 #include <iostream>
 
-bool AutoCompleteKeyboardIntercept::eventFilter(QObject *obj, QEvent *event)
-{
-	if (event->type() == QEvent::KeyPress)
-	{
-		QKeyEvent *keyEvent = static_cast<QKeyEvent *>(event);
-		qDebug("Ate key press %d", keyEvent->key());
-		return true;
-	}
-	else
-	{
-		// standard event processing
-		return QObject::eventFilter(obj, event);
-	}
-}
-
-
 struct ScopedBool
 {
 	bool& m_value;
@@ -44,14 +28,11 @@ struct ScopedBool
 
 MainWindow::MainWindow(QWidget *parent)
 : QMainWindow(parent),
-  m_editorValidate(false),
-  m_autoCompleteActive(false),
-  m_autoCompleteStartPosition(-1)
+  m_editorValidate(false)
 {
 	setupFileMenu();
 	setupHelpMenu();
 	setupEditor();
-	setupAutoComplete();
 
 	setCentralWidget(m_editor);
 	updateWindowTitle();
@@ -66,9 +47,9 @@ void MainWindow::about()
 void MainWindow::newFile()
 {
 	m_editor->clear();
+	m_editor->setText(tr("[0,0.3,0]"));
 	m_filename.clear();
 	updateWindowTitle();
-	TextUpdatedImp();
 }
 
 void MainWindow::openFile(const QString &path)
@@ -147,17 +128,12 @@ void MainWindow::saveImage()
 
 void MainWindow::setupEditor()
 {
-
 	QFont font;
 	font.setFamily("Lucida");
 	font.setFixedPitch(true);
 	font.setPointSize(12);
 
 	m_editor = new CodeEditor(NULL, font);
-
-	QTextOption opt =  m_editor->document()->defaultTextOption();
-	opt.setWrapMode(QTextOption::NoWrap);
-	m_editor->document()->setDefaultTextOption(opt);
 
 	m_consoleDock = new QDockWidget(tr("Console"), this);
 	m_consoleDock->setAllowedAreas(Qt::BottomDockWidgetArea);
@@ -181,7 +157,7 @@ void MainWindow::setupEditor()
 	m_pixmapItem = m_graphicsScene->addPixmap(*m_pixmap);
 
 	m_graphicsView = new QGraphicsView(m_graphicsScene, m_outputDock);
-	m_graphicsView->setMinimumSize(width + 32, height +32);
+	m_graphicsView->setMinimumSize(width + 32, height + 32);
 	m_graphicsView->setBackgroundBrush(QBrush(QColor(48, 48, 48), Qt::SolidPattern));
 	m_outputDock->setWidget(m_graphicsView);
 	addDockWidget(Qt::RightDockWidgetArea, m_outputDock);
@@ -192,53 +168,8 @@ void MainWindow::setupEditor()
 
 	QObject::connect(m_editor, SIGNAL(textChanged(void)), this, SLOT(TextUpdated(void)));
 
-	m_webView = new QWebView();
-	//m_webView->load(QUrl("http://www.google.com"));
-	QWebFrame* frame = m_webView->page()->mainFrame();
-	frame->setHtml(tr("<html><h1>Function name</h1></html>"));
-	//frame->documentElement().appendInside("<h1>test</h1>");
-
-//	QDockWidget* helpDock = new QDockWidget(tr("Help"), this);
-//	helpDock->setAllowedAreas(Qt::RightDockWidgetArea);
-//	helpDock->setWidget(m_webView);
-//	addDockWidget(Qt::RightDockWidgetArea, helpDock);
-
-	m_autoCompleteList = new AutoCompleteListWidget(m_editor);
-	m_autoCompleteList->setFixedSize(QSize(200,500));
-	m_autoCompleteList->hide();
 	m_editor->setFocus();
-	m_autoCompleteActive = false;
 
-
-	QObject::connect(m_autoCompleteList, SIGNAL(itemDoubleClicked(QListWidgetItem*)), this, SLOT(AutocompleteItemSelected(QListWidgetItem *)));
-	//QObject::connect(m_autoCompleteList, SIGNAL(itemClicked(QListWidgetItem*)), this, SLOT(AutocompleteItemSelected(QListWidgetItem *)));
-
-	QObject::connect(m_editor, SIGNAL(cursorPositionChanged()), SLOT(CursorPositionChanged(void)));
-
-//	AutoCompleteKeyboardIntercept *autocompleteIntercept = new AutoCompleteKeyboardIntercept();
-//	m_editor->installEventFilter(autocompleteIntercept);
-}
-
-void MainWindow::AutocompleteItemSelected(QListWidgetItem * item)
-{
-	QList<QListWidgetItem*> items = m_autoCompleteList->selectedItems();
-	if (items.size() > 0 )
-	{
-		QTextCursor c2 = m_editor->textCursor();
-		c2.movePosition(QTextCursor::StartOfWord, QTextCursor::MoveAnchor, 1);
-		c2.movePosition(QTextCursor::EndOfWord, QTextCursor::KeepAnchor,1);
-
-		m_autoCompleteActive = false;
-		m_autoCompleteList->hide();
-
-		c2.insertText(items[0]->text());
-
-		c2.movePosition(QTextCursor::StartOfWord, QTextCursor::MoveAnchor, 1);
-		m_editor->setFocus();
-	}
-	m_autoCompleteActive = false;
-	m_autoCompleteList->hide();
-	m_editor->setFocus();
 }
 
 void MainWindow::ShowOutputWindow()
@@ -249,18 +180,6 @@ void MainWindow::ShowOutputWindow()
 void MainWindow::ShowConsoleWindow()
 {
 	m_consoleDock->show();
-}
-
-void MainWindow::TextUpdatedImp()
-{
-	std::string expression = m_editor->document()->toPlainText().toStdString();
-
-	if (m_autoCompleteActive)
-	{
-		UpdateAutocomplete(false);
-	}
-
-	m_imager->UpdateExpression(expression);
 }
 
 bool operator==(const SeExpression::Error& lhs, const SeExpression::Error& rhs)
@@ -321,92 +240,8 @@ void MainWindow::TextUpdated()
 	if(m_editorValidate)
 		return;
 
-	TextUpdatedImp();
-}
-
-void MainWindow::UpdateAutocomplete(bool onEnabled)
-{
-	QTextCursor c = m_editor->textCursor();
-	c.movePosition(QTextCursor::StartOfWord, QTextCursor::MoveAnchor, 1);
-	c.movePosition(QTextCursor::EndOfWord, QTextCursor::KeepAnchor,1);
-
-	m_autoComplete.UpdateFilter(c.selectedText().toStdString());
-	const std::vector<Autocomplete::Option>& filteredOptions =  m_autoComplete.FilteredOptions();
-	m_autoCompleteList->clear();
-
-
-	for (size_t i = 0; i < filteredOptions.size(); ++i)
-	{
-		QListWidgetItem* item = new QListWidgetItem(tr(filteredOptions[i].name.c_str()), m_autoCompleteList);
-		m_autoCompleteList->addItem(item);
-	}
-
-	m_autoCompleteList->setSelectionMode(QAbstractItemView::SingleSelection);
-
-	std::cout << "Update Auto Complete" << std::endl;
-
-
-	if (filteredOptions.size() == 0)
-	{
-		m_autoCompleteActive = false;
-		m_autoCompleteList->hide();
-		m_editor->setFocus();
-		return;
-	}
-
-	if (filteredOptions.size() == 1 && onEnabled)
-	{
-		const std::string& insertionString = filteredOptions[0].name;
-
-		QTextCursor c2 = m_editor->textCursor();
-		c2.movePosition(QTextCursor::StartOfWord, QTextCursor::MoveAnchor, 1);
-		c2.movePosition(QTextCursor::EndOfWord, QTextCursor::KeepAnchor,1);
-
-		m_autoCompleteActive = false;
-		m_autoCompleteList->hide();
-		m_editor->setFocus();
-
-		c2.insertText(QString(tr(insertionString.c_str())));
-		return;
-	}
-
-	if (m_editor->textCursor().position() < m_autoCompleteStartPosition)
-	{
-		AutocompleteDisabled();
-		return;
-	}
-
-	m_autoCompleteList->setCurrentItem(m_autoCompleteList->item(0));
-}
-
-void MainWindow::AutocompleteEnabled()
-{
-	if (m_autoCompleteActive)
-		return;
-
-	std::cout << "Autocomplete " << std::endl;
-
-
-	QTextCursor c = m_editor->textCursor();
-
-	c.movePosition(QTextCursor::StartOfWord, QTextCursor::MoveAnchor, 1);
-	QRect r = m_editor->cursorRect(c);
-	m_autoCompleteList->move(r.bottomLeft());
-
-	m_autoCompleteList->show();
-	m_autoCompleteList->setFocus();
-	m_autoCompleteActive = true;
-
-	UpdateAutocomplete(true);
-
-	m_autoCompleteStartPosition = m_editor->textCursor().position();
-}
-
-void MainWindow::AutocompleteDisabled()
-{
-	m_autoCompleteList->hide();
-	m_editor->setFocus();
-	m_autoCompleteActive = false;
+	std::string expression = m_editor->document()->toPlainText().toStdString();
+	m_imager->UpdateExpression(expression);
 }
 
 void MainWindow::setupFileMenu()
@@ -419,8 +254,6 @@ void MainWindow::setupFileMenu()
 	fileMenu->addAction(tr("&Save..."), this, SLOT(saveFile()), QKeySequence::Save);
 	fileMenu->addAction(tr("Save As..."), this, SLOT(saveFileAs()), QKeySequence::SaveAs);
 	fileMenu->addAction(tr("Save Image..."), this, SLOT(saveImage()));
-	fileMenu->addAction(tr("Auto Complete"), this, SLOT(AutocompleteEnabled()), QKeySequence(Qt::META + Qt::Key_Space));
-	fileMenu->addAction(tr("Leave Autocomplete"), this, SLOT(AutocompleteDisabled()), QKeySequence(Qt::Key_Escape));
 	fileMenu->addAction(tr("E&xit"), qApp, SLOT(quit()), QKeySequence::Quit);
 
 	QMenu *windowMenu = new QMenu(tr("&Window"), this);
@@ -436,71 +269,6 @@ void MainWindow::setupHelpMenu()
 
 	helpMenu->addAction(tr("&About"), this, SLOT(about()));
 	helpMenu->addAction(tr("About &Qt"), qApp, SLOT(aboutQt()));
-}
-
-void MainWindow::setupAutoComplete()
-{
-	m_autoComplete.AddItem(Autocomplete::Option(Autocomplete::Function, "clamp"));
-	m_autoComplete.AddItem(Autocomplete::Option(Autocomplete::Function, "compress"));
-	m_autoComplete.AddItem(Autocomplete::Option(Autocomplete::Function, "expand"));
-	m_autoComplete.AddItem(Autocomplete::Option(Autocomplete::Function, "contrast"));
-	m_autoComplete.AddItem(Autocomplete::Option(Autocomplete::Function, "invert"));
-
-	m_autoComplete.AddItem(Autocomplete::Option(Autocomplete::Function, "remap"));
-	m_autoComplete.AddItem(Autocomplete::Option(Autocomplete::Function, "hsi"));
-	m_autoComplete.AddItem(Autocomplete::Option(Autocomplete::Function, "midhsi"));
-
-	m_autoComplete.AddItem(Autocomplete::Option(Autocomplete::Function, "rgbtohsl"));
-	m_autoComplete.AddItem(Autocomplete::Option(Autocomplete::Function, "hsltorgb"));
-
-	m_autoComplete.AddItem(Autocomplete::Option(Autocomplete::Function, "bias"));
-	m_autoComplete.AddItem(Autocomplete::Option(Autocomplete::Function, "gamma"));
-
-	m_autoComplete.AddItem(Autocomplete::Option(Autocomplete::Function, "fit"));
-	m_autoComplete.AddItem(Autocomplete::Option(Autocomplete::Function, "mix"));
-
-	m_autoComplete.AddItem(Autocomplete::Option(Autocomplete::Function, "boxstep"));
-	m_autoComplete.AddItem(Autocomplete::Option(Autocomplete::Function, "gaussstep"));
-	m_autoComplete.AddItem(Autocomplete::Option(Autocomplete::Function, "linearstep"));
-	m_autoComplete.AddItem(Autocomplete::Option(Autocomplete::Function, "smoothstep"));
-
-	m_autoComplete.AddItem(Autocomplete::Option(Autocomplete::Function, "rand"));
-	m_autoComplete.AddItem(Autocomplete::Option(Autocomplete::Function, "hash"));
-
-	m_autoComplete.AddItem(Autocomplete::Option(Autocomplete::Function, "cellnoise"));
-	m_autoComplete.AddItem(Autocomplete::Option(Autocomplete::Function, "cellnoise2"));
-	m_autoComplete.AddItem(Autocomplete::Option(Autocomplete::Function, "cellnoise3"));
-
-	m_autoComplete.AddItem(Autocomplete::Option(Autocomplete::Function, "noise"));
-	m_autoComplete.AddItem(Autocomplete::Option(Autocomplete::Function, "cnoise"));
-	m_autoComplete.AddItem(Autocomplete::Option(Autocomplete::Function, "snoise"));
-
-	m_autoComplete.AddItem(Autocomplete::Option(Autocomplete::Function, "cnoise4"));
-	m_autoComplete.AddItem(Autocomplete::Option(Autocomplete::Function, "snoise4"));
-	m_autoComplete.AddItem(Autocomplete::Option(Autocomplete::Function, "vnoise4"));
-
-	m_autoComplete.AddItem(Autocomplete::Option(Autocomplete::Function, "pnoise"));
-
-	m_autoComplete.AddItem(Autocomplete::Option(Autocomplete::Function, "cperlin"));
-	m_autoComplete.AddItem(Autocomplete::Option(Autocomplete::Function, "sperlin"));
-	m_autoComplete.AddItem(Autocomplete::Option(Autocomplete::Function, "vperlin"));
-
-	m_autoComplete.AddItem(Autocomplete::Option(Autocomplete::Function, "fbm"));
-	m_autoComplete.AddItem(Autocomplete::Option(Autocomplete::Function, "cfbm"));
-	m_autoComplete.AddItem(Autocomplete::Option(Autocomplete::Function, "vfbm"));
-	m_autoComplete.AddItem(Autocomplete::Option(Autocomplete::Function, "fbm4"));
-	m_autoComplete.AddItem(Autocomplete::Option(Autocomplete::Function, "cfbm4"));
-	m_autoComplete.AddItem(Autocomplete::Option(Autocomplete::Function, "vfbm4"));
-
-	m_autoComplete.AddItem(Autocomplete::Option(Autocomplete::Function, "turbulence"));
-	m_autoComplete.AddItem(Autocomplete::Option(Autocomplete::Function, "cturbulence"));
-	m_autoComplete.AddItem(Autocomplete::Option(Autocomplete::Function, "vturbulence"));
-
-	m_autoComplete.AddItem(Autocomplete::Option(Autocomplete::Function, "cycle"));
-
-	m_autoComplete.AddItem(Autocomplete::Option(Autocomplete::Function, "pick"));
-	m_autoComplete.AddItem(Autocomplete::Option(Autocomplete::Function, "choose"));
-	m_autoComplete.AddItem(Autocomplete::Option(Autocomplete::Function, "wchoose"));
 }
 
 void MainWindow::updateWindowTitle()
@@ -524,11 +292,7 @@ void MainWindow::ImageUpdated()
 		m_pixmapItem->update(QRectF());
 	}
 
-
 	validate(m_imager->GetErrors());
 }
 
-void MainWindow::CursorPositionChanged()
-{
-}
 

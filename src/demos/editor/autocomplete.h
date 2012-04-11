@@ -26,6 +26,7 @@ public:
 	enum Type
 	{
 		Function,
+		Constant,
 		Variable
 	};
 
@@ -45,13 +46,14 @@ public:
 
 	void AddItem(const Option& option);
 	void RemoveItem(const std::string& name);
-	void UpdateFilter(const std::string& filter);
+	bool UpdateFilter(const std::string& filter);
 
 	const std::vector<Option>& FilteredOptions() const;
 	const std::vector<Option>& AllOptions() const;
 
 private:
 	std::string m_filter;
+	bool m_filterSet;
 	std::vector<Option> m_filteredOptions;
 	std::vector<Option> m_allOptions;
 };

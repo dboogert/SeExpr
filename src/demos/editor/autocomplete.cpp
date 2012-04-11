@@ -3,8 +3,12 @@
 //
 
 #include "autocomplete.h"
+#include <QString>
+
+#include <iostream>
 
 Autocomplete::Autocomplete()
+: m_filterSet(false)
 {
 }
 
@@ -30,8 +34,14 @@ void Autocomplete::RemoveItem(const std::string& name)
 	}
 }
 
-void Autocomplete::UpdateFilter(const std::string& filter)
+bool Autocomplete::UpdateFilter(const std::string& filter)
 {
+	if (filter == m_filter && m_filterSet)
+		return false;
+
+	m_filter = filter;
+	m_filterSet = true;
+
 	m_filteredOptions.clear();
 	for (std::vector<Option>::const_iterator it = m_allOptions.begin(); it != m_allOptions.end(); ++it)
 	{
@@ -40,6 +50,7 @@ void Autocomplete::UpdateFilter(const std::string& filter)
 	}
 
 	std::sort(m_filteredOptions.begin(), m_filteredOptions.end());
+	return true;
 }
 
 const std::vector<Autocomplete::Option>& Autocomplete::FilteredOptions() const

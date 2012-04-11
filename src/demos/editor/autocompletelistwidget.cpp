@@ -6,7 +6,8 @@
 
 #include <QKeyEvent>
 #include <QTextEdit>
-#include <qtextCursor>
+#include <QTextCursor>
+#include <QFocusEvent>
 
 #include <iostream>
 
@@ -26,23 +27,57 @@ void AutoCompleteListWidget::keyPressEvent (QKeyEvent* event)
 	std::cout << event->text().toStdString() << std::endl;
 	std::cout << event->key() << std::endl;
 
-	if (event->key() == Qt::Key_Enter || event->key() == Qt::Key_Select)
+	std::cout << Qt::Key_Return << std::endl;
+
+
+	if (event->key() == 16777220)
 	{
 		std::cout << "auto complete item selected" << std::endl;
 		event->accept();
-	}
+//		QTextCursor c2 = m_editor->textCursor();
+//		close();
 
-	else if (event->key() == Qt::Key_Backspace)
+		QList<QListWidgetItem*> selectedItems = this->selectedItems();
+
+		if (!selectedItems.empty())
+		{
+			emit itemDoubleClicked(selectedItems.first());
+		}
+		return;
+	}
+	else if (event->key() == Qt::Key_Backspace )
 	{
 		event->accept();
 		QTextCursor c2 = m_editor->textCursor();
 		c2.deleteChar();
 	}
-	else
+	else if (event->key() == Qt::Key_Space)
+	{
+		QTextCursor c2 = m_editor->textCursor();
+		c2.insertText(event->text());
+		this->parentWidget()->setFocus();
+		this->close();
+		event->accept();
+	}
+	else if (event->key() == Qt::Key_Escape)
+	{
+		this->parentWidget()->setFocus();
+		this->close();
+		event->accept();
+	}
+	else if (event->text().isSimpleText())
 	{
 		QTextCursor c2 = m_editor->textCursor();
 		c2.insertText(event->text());
 	}
 
 	QListWidget::keyPressEvent(event);
+}
+
+void AutoCompleteListWidget::focusOutEvent (QFocusEvent * event)
+{
+	if (event->lostFocus())
+	{
+		this->close();
+	}
 }
