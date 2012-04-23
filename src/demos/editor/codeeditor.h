@@ -7,6 +7,7 @@
 
 #include "autocomplete.h"
 #include "autocompletelistwidget.h"
+#include "autocompletewidget.h"
 
 #include <QTextEdit>
 
@@ -27,7 +28,7 @@ public:
 public slots:
 	void AutocompleteEnabled();
 	void AutocompleteDisabled();
-	void AutocompleteItemSelected(QListWidgetItem * item);
+	void AutocompleteItemSelected(const QString& text);
 
 	void TextUpdated();
 
@@ -36,7 +37,7 @@ private:
 
 	Highlighter* m_highlighter;
 	Autocomplete m_autoComplete;
-	AutoCompleteListWidget* m_autoCompleteList;
+	AutoCompleteWidget* m_autoCompleteWidget;
 	int m_autoCompleteStartPosition;
 };
 

@@ -45,39 +45,31 @@ void AutoCompleteListWidget::keyPressEvent (QKeyEvent* event)
 		}
 		return;
 	}
-	else if (event->key() == Qt::Key_Backspace )
+	else if (event->key() == Qt::Key_Backspace)
 	{
 		event->accept();
-		QTextCursor c2 = m_editor->textCursor();
-		c2.deleteChar();
+
+		//QTextCursor c2 = m_editor->textCursor();
+		//c2.deleteChar();
 	}
 	else if (event->key() == Qt::Key_Space)
 	{
-		QTextCursor c2 = m_editor->textCursor();
-		c2.insertText(event->text());
-		this->parentWidget()->setFocus();
-		this->close();
+		//QTextCursor c2 = m_editor->textCursor();
+		//c2.insertText(event->text());
+		//this->parentWidget()->setFocus();
 		event->accept();
 	}
 	else if (event->key() == Qt::Key_Escape)
 	{
-		this->parentWidget()->setFocus();
-		this->close();
+		//this->parentWidget()->setFocus();
 		event->accept();
 	}
 	else if (event->text().isSimpleText())
 	{
-		QTextCursor c2 = m_editor->textCursor();
-		c2.insertText(event->text());
+		//QTextCursor c2 = m_editor->textCursor();
+		//c2.insertText(event->text());
 	}
 
 	QListWidget::keyPressEvent(event);
 }
 
-void AutoCompleteListWidget::focusOutEvent (QFocusEvent * event)
-{
-	if (event->lostFocus())
-	{
-		this->close();
-	}
-}

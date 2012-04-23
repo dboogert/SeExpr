@@ -21,11 +21,10 @@ CodeEditor::CodeEditor(QWidget* parent, QFont& font)
 	opt.setWrapMode(QTextOption::NoWrap);
 	document()->setDefaultTextOption(opt);
 
-	m_autoCompleteList = new AutoCompleteListWidget(this);
-	m_autoCompleteList->setFixedSize(QSize(150,250));
-	m_autoCompleteList->hide();
+	m_autoCompleteWidget = new AutoCompleteWidget(this);
+	m_autoCompleteWidget->hide();
 
-	QObject::connect(m_autoCompleteList, SIGNAL(itemDoubleClicked(QListWidgetItem*)), this, SLOT(AutocompleteItemSelected(QListWidgetItem *)));
+	QObject::connect(m_autoCompleteWidget, SIGNAL(ItemSelected(const QString& text)), this, SLOT(AutocompleteItemSelected(const QString& text)));
 	QObject::connect(this, SIGNAL(textChanged(void)), this, SLOT(TextUpdated(void)));
 
 	setupAutoComplete();
@@ -58,19 +57,26 @@ void CodeEditor::keyPressEvent (QKeyEvent* e)
 
 void CodeEditor::AutocompleteEnabled()
 {
-	if (m_autoCompleteList->isVisible())
-		return;
+	std::cout << "Autocomplete: ";
 
-	std::cout << "Autocomplete " << std::endl;
+	if (m_autoCompleteWidget->isVisible())
+	{
+		std::cout << " already visible" << std::endl;
+		return;
+	}
+
+	std::cout << "enabling " << std::endl;
+
 
 	QTextCursor c = textCursor();
 
 	c.movePosition(QTextCursor::StartOfWord, QTextCursor::MoveAnchor, 1);
 	QRect r = cursorRect(c);
-	m_autoCompleteList->move(r.bottomLeft() + QPoint(0,3));
 
-	m_autoCompleteList->show();
-	m_autoCompleteList->setFocus();
+	m_autoCompleteWidget->move(r.bottomLeft() + QPoint(0,5));
+
+	m_autoCompleteWidget->show();
+	m_autoCompleteWidget->setFocus();
 
 	UpdateAutocomplete(true);
 
@@ -79,13 +85,13 @@ void CodeEditor::AutocompleteEnabled()
 
 void CodeEditor::AutocompleteDisabled()
 {
-	m_autoCompleteList->hide();
+	m_autoCompleteWidget->hide();
 	setFocus();
 }
 
 void CodeEditor::UpdateAutocomplete(bool onEnabled)
 {
-	if (!m_autoCompleteList->isVisible())
+	if (!m_autoCompleteWidget->isVisible())
 		return;
 
 	QTextCursor c = textCursor();
@@ -102,15 +108,8 @@ void CodeEditor::UpdateAutocomplete(bool onEnabled)
 		return;
 
 	const std::vector<Autocomplete::Option>& filteredOptions =  m_autoComplete.FilteredOptions();
-	m_autoCompleteList->clear();
 
-	for (size_t i = 0; i < filteredOptions.size(); ++i)
-	{
-		QListWidgetItem* item = new QListWidgetItem(tr(filteredOptions[i].name.c_str()), m_autoCompleteList);
-		m_autoCompleteList->addItem(item);
-	}
-
-	m_autoCompleteList->setSelectionMode(QAbstractItemView::SingleSelection);
+	m_autoCompleteWidget->UpdateOptions(filteredOptions);
 
 	std::cout << "Update Auto Complete" << std::endl;
 	std::cout << "auto complete size" << filteredOptions.size() << std::endl;
@@ -138,27 +137,24 @@ void CodeEditor::UpdateAutocomplete(bool onEnabled)
 		AutocompleteDisabled();
 		return;
 	}
-
-	m_autoCompleteList->setCurrentItem(m_autoCompleteList->item(0));
 }
 
-void CodeEditor::AutocompleteItemSelected(QListWidgetItem * item)
+void CodeEditor::AutocompleteItemSelected(const QString& text)
 {
-	QList<QListWidgetItem*> items = m_autoCompleteList->selectedItems();
-	if (items.size() > 0 )
+	if (text.size() > 0 )
 	{
 		QTextCursor c2 = textCursor();
 		c2.movePosition(QTextCursor::StartOfWord, QTextCursor::MoveAnchor, 1);
 		c2.movePosition(QTextCursor::EndOfWord, QTextCursor::KeepAnchor,1);
 
-		m_autoCompleteList->hide();
+		m_autoCompleteWidget->hide();
 
-		c2.insertText(items[0]->text());
+		c2.insertText(text);
 
 		c2.movePosition(QTextCursor::StartOfWord, QTextCursor::MoveAnchor, 1);
 		setFocus();
 	}
-	m_autoCompleteList->hide();
+	m_autoCompleteWidget->hide();
 	setFocus();
 }
 
@@ -292,7 +288,4 @@ void CodeEditor::setupAutoComplete()
 	m_autoComplete.AddItem(Autocomplete::Option(Autocomplete::Function, "spline"));
 
 	m_autoComplete.AddItem(Autocomplete::Option(Autocomplete::Function, "printf"));
-
-
-
 }

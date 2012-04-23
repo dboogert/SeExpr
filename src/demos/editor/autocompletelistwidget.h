@@ -14,12 +14,12 @@ class QFocusEvent;
 
 class AutoCompleteListWidget : public QListWidget
 {
+	Q_OBJECT;
 public:
 	explicit AutoCompleteListWidget(QTextEdit *parent = 0);
 	virtual ~AutoCompleteListWidget();
 
 	void keyPressEvent (QKeyEvent* event);
-	void focusOutEvent (QFocusEvent * event);
 
 private:
 	QTextEdit* m_editor;

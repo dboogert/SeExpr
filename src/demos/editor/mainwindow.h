@@ -14,7 +14,6 @@ class QGraphicsView;
 class QGraphicsScene;
 class QPixmap;
 class QGraphicsPixmapItem;
-class QWebView;
 class QListWidget;
 class QListWidgetItem;
 class AutoCompleteListWidget;
