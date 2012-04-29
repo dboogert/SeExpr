@@ -34,14 +34,10 @@ public:
 
 		result =  SeVec3d(5.0 * std::cos(r[0]), 0.0, 0.0);
 	}
-};
+} texture;
 
 extern "C" void SeExprPluginInitV2(SeExprFunc::Define3 define)
 {
-
-	std::cout << "init" << std::endl;
-
-	Texture* t = new Texture();
-    define("map", SeExprFunc(*t,1,2), "");
+    define("map", SeExprFunc(texture,1,1), "sample from a texture");
 }
 
