@@ -6,24 +6,35 @@
 #include <OpenImageIO/texture.h>
 #include <OpenImageIO/ustring.h>
 
+#include <sstream>
 #include <iostream>
 #include <cmath>
 
-OIIO::TextureSystem* textureSystem = NULL;
+//!
+//! Wrapper class for OIIO texture system which is responsible for deleting the
+//! OIIO::TextureSystem
+class ScopedTextureSystem
+{
+public:
+	ScopedTextureSystem() : m_ptr(OIIO::TextureSystem::create(false)) {}
+	~ScopedTextureSystem()
+	{
+		OIIO::TextureSystem::destroy(m_ptr);
+		std::cout << "destorying texture system" << std::endl;
+	}
+	OIIO::TextureSystem* operator->() { return m_ptr; }
+
+private:
+	OIIO::TextureSystem* m_ptr;
+};
+
+static ScopedTextureSystem textureSystem;
 
 class Texture : public SeExprFuncX
 {
 public:
 	Texture()
 	: SeExprFuncX(true)
-	{
-		if (!textureSystem)
-		{
-			textureSystem = OIIO::TextureSystem::create(false);
-		}
-	}
-
-	~Texture()
 	{
 	}
 
@@ -42,13 +53,26 @@ public:
 			return false;
 		}
 
-
 		m_texturePath = node->getStrArg(0);
+		m_texturePathIndex = OIIO::ustring(m_texturePath);
 
 		node->child(1)->prep(wantVec);
 
-		m_texturePathIndex = OIIO::ustring(m_texturePath);
+		OIIO::TextureOpt options;
+		options.nchannels = 3;
 
+		float sampleResult[4];
+		bool sr = textureSystem->texture(m_texturePathIndex, options, (float) 0.0, 0.0, 1.0f, 0.0f, 0.0f, 1.0f, &sampleResult[0]);
+
+		if (!sr)
+		{
+			std::stringstream ss;
+			ss << "Error sampling texture:" << m_texturePath << std::endl << textureSystem->geterror();
+			node->addError(ss.str());
+			return false;
+		}
+
+		m_options.nchannels = 3;
 		return true;
 	}
 
@@ -58,31 +82,21 @@ public:
 		SeVec3d r;
 		node->child(1)->eval(r);
 		float sampleResult[4];
-		OIIO::TextureOpt options;
 
-		options.nchannels = 3;
+		OIIO::TextureOpt options = m_options;
 
-		bool sr = textureSystem->texture(OIIO::ustring(m_texturePath), options, (float) r[0], (float) r[1], 1.0f, 0.0f, 0.0f, 1.0f, &sampleResult[0]);
-		if (!sr)
-		{
-			std::cout << m_texturePath << std::endl;
-			std::cout << sr << std::endl;
-			std::cout << textureSystem->geterror() << std::endl;
-		}
-
-
+		textureSystem->texture(m_texturePathIndex, options, (float) r[0], (float) r[1], 1.0f, 0.0f, 0.0f, 1.0f, &sampleResult[0]);
 		result = SeVec3d(sampleResult[0], sampleResult[1], sampleResult[2]);
 	}
 private:
-
 	std::string m_texturePath;
-
 	OIIO::ustring m_texturePathIndex;
+	OIIO::TextureOpt m_options;
 
 } texture;
 
 extern "C" void SeExprPluginInitV2(SeExprFunc::Define3 define)
 {
-    define("map", SeExprFunc(texture,2,2), "sample from a texture");
+    define("map", SeExprFunc(texture,2,2), "sample from a texture map");
 }
 
