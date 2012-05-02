@@ -1,24 +1,24 @@
 /*
  SEEXPR SOFTWARE
  Copyright 2011 Disney Enterprises, Inc. All rights reserved
- 
+
  Redistribution and use in source and binary forms, with or without
  modification, are permitted provided that the following conditions are
  met:
- 
+
  * Redistributions of source code must retain the above copyright
  notice, this list of conditions and the following disclaimer.
- 
+
  * Redistributions in binary form must reproduce the above copyright
  notice, this list of conditions and the following disclaimer in
  the documentation and/or other materials provided with the
  distribution.
- 
+
  * The names "Disney", "Walt Disney Pictures", "Walt Disney Animation
  Studios" or the names of its contributors may NOT be used to
  endorse or promote products derived from this software without
  specific prior written permission from Walt Disney Pictures.
- 
+
  Disclaimer: THIS SOFTWARE IS PROVIDED BY WALT DISNEY PICTURES AND
  CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING,
  BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
@@ -338,14 +338,14 @@ static const char* vturbulence_docstring="vector vturbulence(vector v,int octave
 	    // apply mask
 	    double m = args[4][0];
 	    // remap from [0..1] to [-1..1]
-	    m = m * 2 - 1; 
+	    m = m * 2 - 1;
 	    // add falloff (if specified)
 	    double falloff = 1, interp = 0;
 	    if (n >= 6) falloff = args[5][0];
 	    if (n >= 7) interp = args[6][0];
 	    if (m < 0) m = -remap(-m, 1, 0, falloff, interp);
 	    else       m =  remap( m, 1, 0, falloff, interp);
-		
+
 	    // scale hsi values according to mask (both directions)
 	    h *= m;
 	    float absm = fabs(m);
@@ -363,8 +363,8 @@ static const char* vturbulence_docstring="vector vturbulence(vector v,int octave
         "The midhsi function is just like the hsi function except that\n"
         "the control map is centered around the mid point (value of 0.5)\n"
         "and can scale the shift in both directions.";
-        
-    SeVec3d rgbtohsl(const SeVec3d& rgb) 
+
+    SeVec3d rgbtohsl(const SeVec3d& rgb)
     {
 	// RGB to HSL color space conversion
 	// This is based on Foley, Van Dam (2nd ed; p. 595)
@@ -421,7 +421,7 @@ static const char* vturbulence_docstring="vector vturbulence(vector v,int octave
     }
 
 
-    SeVec3d hsltorgb(const SeVec3d& hsl) 
+    SeVec3d hsltorgb(const SeVec3d& hsl)
     {
 	// HSL to RGB color space conversion
 	// This is based on Foley, Van Dam (2nd ed; p. 596)
@@ -499,7 +499,7 @@ static const char* vturbulence_docstring="vector vturbulence(vector v,int octave
 	seed ^= (seed << 15) & 0xefc60000UL;
 	seed ^= (seed >> 18);
 
-	// permute 
+	// permute
 	static unsigned char p[256] = {
 	    148,201,203,34,85,225,163,200,174,137,51,24,19,252,107,173,
 	    110,251,149,69,180,152,141,132,22,20,147,219,37,46,154,114,
@@ -539,7 +539,7 @@ static const char* vturbulence_docstring="vector vturbulence(vector v,int octave
     double noise(int n, const SeVec3d* args)
     {
         if (n < 1) return 0;
-        if (n == 1) { 
+        if (n == 1) {
             // 1 arg = vector arg
             double result;
             double p[3] = { args[0][0], args[0][1], args[0][2] };
@@ -593,7 +593,7 @@ static const char* vnoise_docstring=
 
     SeVec3d cnoise(const SeVec3d& p)
     {
-        return .5*vnoise(p)+.5;
+        return SeVec3d(.5)*vnoise(p)+SeVec3d(.5);
     }
     static const char* cnoise_docstring="color cnoise ( vector v)\n"
         "color noise formed with original perlin noise at location (C2 interpolant)";
@@ -622,7 +622,7 @@ static const char* vnoise_docstring=
 
     SeVec3d cnoise4(int n, const SeVec3d* args)
     {
-        return .5*vnoise4(n,args)+.5;
+        return SeVec3d(.5)*vnoise4(n,args)+SeVec3d(.5);
     }
     static const char* cnoise4_docstring="color cnoise4 ( vector v,float t)\n"
         "4D color noise formed with original perlin noise at location (C2 interpolant)";
@@ -673,7 +673,7 @@ static const char* vnoise_docstring=
 
     SeVec3d cturbulence(int n, const SeVec3d* args)
     {
-	return vturbulence(n, args) * .5 + .5;
+	return vturbulence(n, args) * SeVec3d(.5) + SeVec3d(.5);
     }
 
 
@@ -788,13 +788,13 @@ static const char* vnoise_docstring=
 
     SeVec3d cfbm(int n, const SeVec3d* args)
     {
-	return vfbm(n, args) * .5 + .5;
+	return vfbm(n, args) * SeVec3d(.5) + SeVec3d(.5);
     }
     static const char* cfbm_docstring="color cfbm(vector vint octaves=6,float lacunarity=2,float gain=.5)";
 
     SeVec3d cfbm4(int n, const SeVec3d* args)
     {
-	return vfbm4(n, args) * .5 + .5;
+	return vfbm4(n, args) * SeVec3d(.5) + SeVec3d(.5);
     }
     static const char* cfbm4_docstring="color cfbm4(vector v,float time,int octaves=6,float lacunarity=2,float gain=.5)";
 
@@ -841,7 +841,7 @@ static const char* vnoise_docstring=
 	SeVec3d cell;
 	double jitter;
 	VoronoiPointData() : jitter(-1) {}
-    };    
+    };
 
     static SeVec3d* voronoi_points(VoronoiPointData& data, const SeVec3d& cell, double jitter)
     {
@@ -854,7 +854,7 @@ static const char* vnoise_docstring=
 	    for (double j = -1; j <= 1; j++) {
 		for (double k = -1; k <= 1; k++, n++) {
 		    SeVec3d testcell = cell + SeVec3d(i,j,k);
-		    data.points[n] = testcell + jitter * (ccellnoise(testcell - .5));
+		    data.points[n] = testcell + jitter * (ccellnoise(testcell - SeVec3d(.5)));
 		}
 	    }
 	}
@@ -910,7 +910,7 @@ static const char* vnoise_docstring=
 
     SeVec3d voronoiFn(VoronoiPointData& data, int n, const SeVec3d* args)
     {
-	// args = p, type, jitter, 
+	// args = p, type, jitter,
 	//        fbmScale, fbmOctaves, fbmLacunarity, fbmGain
 	SeVec3d p;
 	int type = 1;
@@ -942,7 +942,7 @@ static const char* vnoise_docstring=
 	SeVec3d pos1, pos2;
 	if (type >= 3)
 	    voronoi_f1f2_3d(data, p, jitter, f1, pos1, f2, pos2);
-	else 
+	else
 	    voronoi_f1_3d(data, p, jitter, f1, pos1);
 
 	switch (type) {
@@ -952,7 +952,7 @@ static const char* vnoise_docstring=
 	case 4: return f2-f1;
 	case 5:
 	    {
-		float scalefactor = 
+		float scalefactor =
 		    (pos2-pos1).length() /
 		    ((pos1-p).length() + (pos2-p).length());
 		return smoothstep(f2-f1, 0, 0.1*scalefactor);
@@ -968,7 +968,7 @@ static const char* vnoise_docstring=
 
     SeVec3d cvoronoiFn(VoronoiPointData& data, int n, const SeVec3d* args)
     {
-	// args = p, type, jitter, 
+	// args = p, type, jitter,
 	//        fbmScale, fbmOctaves, fbmLacunarity, fbmGain
 	SeVec3d p;
 	int type = 1;
@@ -1000,7 +1000,7 @@ static const char* vnoise_docstring=
 	SeVec3d pos1, pos2;
 	if (type >= 3)
 	    voronoi_f1f2_3d(data, p, jitter, f1, pos1, f2, pos2);
-	else 
+	else
 	    voronoi_f1_3d(data, p, jitter, f1, pos1);
 
 	SeVec3d color = ccellnoise(pos1);
@@ -1011,7 +1011,7 @@ static const char* vnoise_docstring=
 	case 4: return (f2-f1) * color;
 	case 5:
 	    {
-		float scalefactor = 
+		float scalefactor =
 		    (pos2-pos1).length() /
 		    ((pos1-p).length() + (pos2-p).length());
 		return smoothstep(f2-f1, 0, 0.1*scalefactor) * color;
@@ -1027,7 +1027,7 @@ static const char* vnoise_docstring=
 
     SeVec3d pvoronoiFn(VoronoiPointData& data, int n, const SeVec3d* args)
     {
-	// args = p, jitter, 
+	// args = p, jitter,
 	//        fbmScale, fbmOctaves, fbmLacunarity, fbmGain
 	SeVec3d p;
 	double jitter = 0.5;
@@ -1088,7 +1088,7 @@ static const char* vnoise_docstring=
      private:
 	VoronoiFunc* _vfunc;
     } voronoi(voronoiFn), cvoronoi(cvoronoiFn), pvoronoi(pvoronoiFn);
-    
+
 
     double dist(double ax, double ay, double az, double bx, double by, double bz)
     {
@@ -1176,7 +1176,7 @@ static const char* vnoise_docstring=
 	const SeVec3d& P = args[0];
 	const SeVec3d& axis = args[1];
 	float angle = args[2][0];
-	double len = axis.length(); 
+	double len = axis.length();
 	if (!len) return P;
 	return P.rotateBy(axis/len, angle);
     }
@@ -1222,7 +1222,7 @@ static const char* vnoise_docstring=
 	if (range <= 0) return loRange;
 	int numWeights = n-3;
 	if (numWeights > range) numWeights = range;
-	
+
 	// build cutoff points based on weights
 	double* cutoffs = (double*) alloca(sizeof(double)*range);
 	double* weights = (double*) alloca(sizeof(double)*range);
@@ -1238,7 +1238,7 @@ static const char* vnoise_docstring=
 
 	// scale value from [0..1] to [0..total] range
 	index *= total;
-    
+
 	// bsearch cutoff table to find index that spans value
 	int lo = 0, hi = range-1;
 	while (lo < hi) {
@@ -1282,7 +1282,7 @@ static const char* vnoise_docstring=
 	if (n < 5) return 0;
 	double key = params[0];
 	int nvals = (n - 1) / 2; // nweights = nvals
-	
+
 	// build cutoff points based on weights
 	double* cutoffs = (double*) alloca(sizeof(double)*nvals);
 	double* weights = (double*) alloca(sizeof(double)*nvals);
@@ -1298,7 +1298,7 @@ static const char* vnoise_docstring=
 
 	// scale value from [0..1] to [0..total] range
 	key *= total;
-    
+
 	// bsearch cutoff table to find index that spans value
 	int lo = 0, hi = nvals-1;
 	while (lo < hi) {
@@ -1345,7 +1345,7 @@ static const char* vnoise_docstring=
         "Interpolates a set of values to the parameter specified where y1, ..., yn are\n"
         "distributed evenly from [0...1]";
 
-    template<class T> 
+    template<class T>
     struct CurveData:public SeExprFuncNode::Data
     {
         SeCurve<T> curve;
@@ -1363,25 +1363,25 @@ static const char* vnoise_docstring=
                 node->addError("Wrong number of arguments, should be multiple of 3 plus 1");
                 return false;
             }
-            
+
             bool noErrors=true;
             noErrors &= node->child(0)->prep(1);
-            
+
             CurveData<double>* data = new CurveData<double>;
             for (int i = 1; i < nargs-2; i+=3) {
-                
+
                 SeVec3d pos;
                 if(node->child(i)->prep(0)) node->child(i)->eval(pos);
                 else noErrors=false;
-                
+
                 SeVec3d val;
                 if(node->child(i+1)->prep(0)) node->child(i+1)->eval(val);
                 else noErrors=false;
-                
+
                 SeVec3d interp;
                 if(node->child(i+2)->prep(0)) node->child(i+2)->eval(interp);
                 else noErrors=false;
-                int interpInt=(int)interp[0];                
+                int interpInt=(int)interp[0];
                 SeCurve<double>::InterpType interpolant=(SeCurve<double>::InterpType)interpInt;
                 if(!SeCurve<double>::interpTypeValid(interpolant)){
                     node->child(i+2)->addError("Invalid interpolation type specified");
@@ -1390,34 +1390,34 @@ static const char* vnoise_docstring=
 
                 data->curve.addPoint(pos[0], val[0], interpolant);
             }
-            
+
             data->curve.preparePoints();
-            
+
             node->setData((SeExprFuncNode::Data*)(data));
             return noErrors;
         }
-    
-        virtual void eval(const SeExprFuncNode* node, SeVec3d& result) const 
+
+        virtual void eval(const SeExprFuncNode* node, SeVec3d& result) const
         {
             SeVec3d param;
             node->child(0)->eval(param);
             bool processVec = node->child(0)->isVec();
-            
+
             CurveData<double> *data = (CurveData<double> *) node->getData();
-            
+
             if (processVec) {
                 for(int i=0;i<3;i++) result[i] = data->curve.getChannelValue(param[i], i);
             } else {
                 result[0]=result[1]=result[2]=data->curve.getValue(param[0]);
             }
         }
-    
-    
+
+
     public:
         CurveFuncX():SeExprFuncX(true){} // Thread Safe
         virtual ~CurveFuncX() {}
-    
-    
+
+
     } curve;
     static const char *curve_docstring=
         "float curve(float param,float pos0,float val0,int interp0,float pos1,float val1,int interp1,[...])\n\n"
@@ -1425,7 +1425,7 @@ static const char* vnoise_docstring=
         "by triples of parameters pos_i, val_i, and interp_i. Interpolation codes are \n"
         "0 - none, 1 - linear, 2 - smooth, 3 - spline, \n"
         "4-monotone (non oscillating spline)";
-    
+
     class CCurveFuncX:public SeExprFuncX
     {
         virtual bool prep(SeExprFuncNode* node, bool /*wantVec*/)
@@ -1438,7 +1438,7 @@ static const char* vnoise_docstring=
             }
             bool noErrors=true;
             noErrors &= node->child(0)->prep(1); // parameter value
-            
+
             CurveData<SeVec3d>* data = new CurveData<SeVec3d>;
             for (int i = 1; i < nargs-2; i+=3) {
                 // position of cv
@@ -1470,22 +1470,22 @@ static const char* vnoise_docstring=
             node->setData((SeExprFuncNode::Data*)(data));
             return noErrors;
         }
-        
-        virtual void eval(const SeExprFuncNode* node, SeVec3d& result) const 
+
+        virtual void eval(const SeExprFuncNode* node, SeVec3d& result) const
         {
             SeVec3d param;
             node->child(0)->eval(param);
             bool processVec = node->child(0)->isVec();
-            
+
             CurveData<SeVec3d> *data = (CurveData<SeVec3d> *) node->getData();
-            
+
             if(processVec) {
                 for(int i=0;i<3;i++) result[i] = data->curve.getChannelValue(param[i], i);
             } else {
                 result=data->curve.getValue(param[0]);
             }
         }
-    
+
     public:
         CCurveFuncX():SeExprFuncX(true){}  // Thread Safe
         virtual ~CCurveFuncX() {}
@@ -1504,7 +1504,7 @@ static const char* vnoise_docstring=
             std::vector<std::pair<int,int> > ranges;
             std::string format;
         };
-            
+
         virtual bool prep(SeExprFuncNode* node, bool /*wantVec*/)
         {
             // check number of arguments
@@ -1573,7 +1573,7 @@ static const char* vnoise_docstring=
             return true;
         }
 
-        virtual void eval(const SeExprFuncNode* node, SeVec3d& result) const 
+        virtual void eval(const SeExprFuncNode* node, SeVec3d& result) const
         {
             result[0]=result[1]=result[2]=0;
 
@@ -1597,7 +1597,7 @@ static const char* vnoise_docstring=
                 }
             }
                 std::cerr<<std::endl;
-        }        
+        }
     public:
         PrintFuncX():SeExprFuncX(false){} // not thread safe
 

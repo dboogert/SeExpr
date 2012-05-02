@@ -39,7 +39,7 @@ SET( CMAKE_ALLOW_LOOSE_LOOP_CONSTRUCTS TRUE )
 ## Use verbose make file
 SET ( CMAKE_VERBOSE_MAKEFILE TRUE )
 
-
+SET(CMAKE_CXX_COMPILER "clang++")
 
 ## project name & version
 PROJECT( SeExpr )
