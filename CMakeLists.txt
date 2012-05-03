@@ -39,8 +39,6 @@ SET( CMAKE_ALLOW_LOOSE_LOOP_CONSTRUCTS TRUE )
 ## Use verbose make file
 SET ( CMAKE_VERBOSE_MAKEFILE TRUE )
 
-
-
 ## project name & version
 PROJECT( SeExpr )
 SET( ${PROJECT_NAME}_MAJOR_VERSION 0 )
@@ -103,6 +101,6 @@ ADD_SUBDIRECTORY (src/SeExpr)
 ADD_SUBDIRECTORY (src/tests)
 ADD_SUBDIRECTORY (src/doc)
 ADD_SUBDIRECTORY (src/demos)
-
+ADD_SUBDIRECTORY (src/plugins)
 
 
