@@ -1,0 +1,9 @@
+t = 1.0;
+d = [0.1,0.2,0.3];
+o = d * t;
+f = 3.0;
+s = turbulence(f * [u,v,0] + o);
+v = cturbulence(f * [u,v,0] + o);
+v
+
+
