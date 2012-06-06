@@ -12,20 +12,23 @@
 
 //!
 //! Wrapper class for OIIO texture system which is responsible for deleting the
-//! OIIO::TextureSystem
+//! TextureSystem
+
+using namespace OpenImageIO::v1_0;
+
 class ScopedTextureSystem
 {
 public:
-	ScopedTextureSystem() : m_ptr(OIIO::TextureSystem::create(false)) {}
+	ScopedTextureSystem() : m_ptr(TextureSystem::create(false)) {}
 	~ScopedTextureSystem()
 	{
-		OIIO::TextureSystem::destroy(m_ptr);
+		TextureSystem::destroy(m_ptr);
 		std::cout << "destorying texture system" << std::endl;
 	}
-	OIIO::TextureSystem* operator->() { return m_ptr; }
+	TextureSystem* operator->() { return m_ptr; }
 
 private:
-	OIIO::TextureSystem* m_ptr;
+	TextureSystem* m_ptr;
 };
 
 static ScopedTextureSystem textureSystem;
@@ -54,11 +57,11 @@ public:
 		}
 
 		m_texturePath = node->getStrArg(0);
-		m_texturePathIndex = OIIO::ustring(m_texturePath);
+		m_texturePathIndex = ustring(m_texturePath);
 
 		node->child(1)->prep(wantVec);
 
-		OIIO::TextureOpt options;
+		TextureOpt options;
 		options.nchannels = 3;
 
 		float sampleResult[4];
@@ -83,15 +86,15 @@ public:
 		node->child(1)->eval(r);
 		float sampleResult[4];
 
-		OIIO::TextureOpt options = m_options;
+		TextureOpt options = m_options;
 
 		textureSystem->texture(m_texturePathIndex, options, (float) r[0], (float) r[1], 1.0f, 0.0f, 0.0f, 1.0f, &sampleResult[0]);
 		result = SeVec3d(sampleResult[0], sampleResult[1], sampleResult[2]);
 	}
 private:
 	std::string m_texturePath;
-	OIIO::ustring m_texturePathIndex;
-	OIIO::TextureOpt m_options;
+	ustring m_texturePathIndex;
+	TextureOpt m_options;
 
 } texture;
 
