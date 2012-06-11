@@ -1,4 +1,4 @@
-/*
+ /*
  SEEXPR SOFTWARE
  Copyright 2011 Disney Enterprises, Inc. All rights reserved
  
@@ -48,7 +48,7 @@ surface testse(
     point Pobj=transform("object",P);
 
     // This will store which variables are used, but we don't care in this example
-    uniform float used[];
+    uniform float used[6];
 
     // We bind Pw, P and N, Cs, Os
     uniform string varNames="(error) Pw P N Cs Os";

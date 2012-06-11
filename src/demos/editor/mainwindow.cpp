@@ -244,6 +244,7 @@ void MainWindow::TextUpdated()
 	m_imager->UpdateExpression(expression);
 }
 
+
 void MainWindow::setupFileMenu()
 {
 	QMenu *fileMenu = new QMenu(tr("&File"), this);

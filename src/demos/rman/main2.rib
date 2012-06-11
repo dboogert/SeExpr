@@ -1,0 +1,28 @@
+##RenderMan RIB
+version 3.04
+Sides 2
+Display "p3dRender.tif" "it" "rgba"
+Option "searchpath" "shader" [".:/home/fahome/aselle/paint3d/render/:/disney/shows/SHOW/sa/shared/paint3d/render/:/usr/local/pixar/prman-15.2/lib/shaders/"]
+ShadingRate 2
+Option "texture" "enable lerp" [1]
+ShadingInterpolation "smooth"
+Attribute "derivatives" "centered" [1]
+PixelSamples 3 3
+PixelFilter "mitchell" 4 4
+Format 818 700 1
+FrameBegin 1
+	ReadArchive "camera.rib"
+	WorldBegin
+	ReadArchive "light.rib"
+								Displacement "testdisp"
+                   "string DispExpr" "0.2*fbm(2*Pw)"
+								
+                Surface "testse" 
+                   "string CExpr" "fbm([5,5,5]*Pw/1,1)"
+                   "string OExpr" "1"
+
+                Attribute "visibility" "int transmission" [1]
+		ReadArchive "geometry.rib"
+
+	WorldEnd
+FrameEnd

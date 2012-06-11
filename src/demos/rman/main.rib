@@ -1,7 +1,8 @@
 ##RenderMan RIB
 version 3.04
 Sides 2
-Display "p3dRender.tif" "it" "rgba"
+Display "test.rib" "idisplay" "rgba"
+#Display "p3dRender.tif" "it" "rgba"
 Option "searchpath" "shader" [".:/home/fahome/aselle/paint3d/render/:/disney/shows/SHOW/sa/shared/paint3d/render/:/usr/local/pixar/prman-15.2/lib/shaders/"]
 ShadingRate 2
 Option "texture" "enable lerp" [1]
@@ -17,7 +18,7 @@ FrameBegin 1
 
 
                 Displacement "testdisp"
-                   "string DispExpr" "0" #.2*fbm(2*Pw)"
+                   "string DispExpr" "0.1*fbm(0.1*Pw)"
                 Surface "testse" 
                    "string CExpr" ["\
 lookup=fbm([5,5,5]*Pw/1,1);\

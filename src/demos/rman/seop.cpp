@@ -1,24 +1,24 @@
 /*
  SEEXPR SOFTWARE
  Copyright 2011 Disney Enterprises, Inc. All rights reserved
- 
+
  Redistribution and use in source and binary forms, with or without
  modification, are permitted provided that the following conditions are
  met:
- 
+
  * Redistributions of source code must retain the above copyright
  notice, this list of conditions and the following disclaimer.
- 
+
  * Redistributions in binary form must reproduce the above copyright
  notice, this list of conditions and the following disclaimer in
  the documentation and/or other materials provided with the
  distribution.
- 
+
  * The names "Disney", "Walt Disney Pictures", "Walt Disney Animation
  Studios" or the names of its contributors may NOT be used to
  endorse or promote products derived from this software without
  specific prior written permission from Walt Disney Pictures.
- 
+
  Disclaimer: THIS SOFTWARE IS PROVIDED BY WALT DISNEY PICTURES AND
  CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING,
  BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
@@ -36,6 +36,7 @@
 #include <rx.h>
 #include <map>
 #include <list>
+#include <set>
 #include <pthread.h>
 #include <SeVec3d.h>
 #include <SeExpression.h>
@@ -47,10 +48,20 @@
 
 namespace{
     RixTokenStorage* tokenizer;
+	std::vector<std::string*> gTokens;
     inline const char* tokenize(const char* str)
     {
-	const char* result = tokenizer->GetToken(str);
-	return result;
+    	std::string* s = new std::string(str);
+    	for (size_t i = 0; i < gTokens.size(); ++i)
+    	{
+    		if (*gTokens[i] == *s)
+    		{
+    			return gTokens[i]->c_str();
+    		}
+    	}
+
+    	gTokens.push_back(s);
+    	return s->c_str();
     }
 
     int SeTokenize(RslContext* /*ctx*/, int /*argc*/, const RslArg* argv[])
@@ -105,12 +116,14 @@ namespace{
 
         // rix message interface
         RixMessages *msgs;
-        
+
 	// all variable maps accessed by this thread
 	SeRmanVarMapMap varmaps;
 
 	SeRmanVarMap& getVarMap(const char* varMapHandle)
 	{
+		//std::cout << "getVarMap varMapHandle: " << varMapHandle << std::endl;
+
 	    SeRmanVarMap*& varmap = varmaps[varMapHandle];
 	    if (!varmap) {
 		// parse var list and make a new varmap
@@ -122,10 +135,12 @@ namespace{
 		char* varlist_end = 0;
 		char* vargroup = strtok_r(varlist, " ", &varlist_end);
 		do {
+			//std::cout << "vargroup: " << vargroup << std::endl;
 		    // parse vars within var group (separated by commas)
 		    int groupStart = varnames.size();
 		    char* vargroup_end = 0;
 		    char* var = strtok_r(vargroup, ",", &vargroup_end);
+		    //std::cout << "var: " << var << std::endl;
 		    do {
 			varnames.push_back(tokenize(var));
 			groupStarts.push_back(groupStart);
@@ -134,11 +149,14 @@ namespace{
 
 		// build new varmap
 		int nvars = varnames.size();
+		//std::cout << "getVarMap nvars: " << nvars << std::endl;
 		int* varindices = (int*) alloca(sizeof(int)*nvars);
 		for (int i = 0; i < nvars; i++){
                     varindices[i] = i;
                 }
 		varmap = new SeRmanVarMap(nvars, &varnames[0], &varindices[0], &groupStarts[0]);
+		//std::cout << "getVarMap varmap: " << varmap << std::endl;
+
 		free(varlist);
 	    }
 	    return *varmap;
@@ -152,7 +170,7 @@ namespace{
             msgs->Error("%s", strbuf);
             va_end(ap);
         }
-        
+
         void ptWarn (char* fmt, ...) {
             static char strbuf[1024];
             va_list ap;
@@ -211,11 +229,11 @@ namespace{
         SeVec3d value;
      public:
 
-	AttrVar() 
+	AttrVar()
             :name(""),value(0.)
         {}
 
-	AttrVar(const std::string& nameIn) 
+	AttrVar(const std::string& nameIn)
             :value(0.)
         {
             //change "::" to ":" (needed :: for parsing SE).
@@ -231,13 +249,13 @@ namespace{
             float fbuf16[16];
 
             RxInfoType_t rxType; // = RxInfoColor;
-            int count;            
+            int count;
             int statusOpt, statusAttr;
 
             //try option first then attribute
-            statusOpt = RxOption (name.c_str(), fbuf16, sizeof (fbuf16), 
+            statusOpt = RxOption (name.c_str(), fbuf16, sizeof (fbuf16),
                                &rxType, &count);
-            statusAttr = RxAttribute (name.c_str(), fbuf16, sizeof (fbuf16), 
+            statusAttr = RxAttribute (name.c_str(), fbuf16, sizeof (fbuf16),
                                       &rxType, &count);
 
             if (statusAttr != 0 && statusOpt != 0) {
@@ -247,7 +265,7 @@ namespace{
             }
 
             // found something
-            switch (rxType) 
+            switch (rxType)
             {
             case RxInfoFloat:
                 // promote float to color grey scale
@@ -282,6 +300,7 @@ namespace{
 
 	virtual SeExprVarRef* resolveVar(const std::string& name) const
 	{
+		//std::cout << "resolveVar name: " << name << std::endl;
             if (name.find("::") != std::string::npos) {
                 int i, size;
                 for (i = 0, size = _attrrefs.size(); i < size; i++)
@@ -306,18 +325,26 @@ namespace{
 
 	SeVarBinding* bindVars(const char* varMapHandle)
 	{
+		//std::cout << "bindVars vapMapHandle: " << varMapHandle << std::endl;
+
 	    SeVarBinding*& binding = _bindings[varMapHandle];
 	    if (!binding) {
 		binding = new SeVarBinding;
 
+		//std::cout << "thread data: " << &_td << std::endl;
 		// find varmap
 		SeRmanVarMap& varmap = _td.getVarMap(varMapHandle);
 		// bind varmap to expression
 		int nvars = _varnames.size();
+
+		//std::cout << "nvars: " << nvars << std::endl;
 		binding->resize(nvars);
 		for (int i = 0; i < nvars; i++) {
 		    const char* name = _varnames[i];
+		    //std::cout << "name: " << name << std::endl;
 		    int index = varmap.indexMap[name];
+		    //std::cout << "index: " << index << std::endl;
+
 		    if (!index) {
                         //for(int i=0;i<varmap.indexMap._keys.size();i++){
                         //    std::cerr<<"key "<<i<<std::endl;
@@ -327,9 +354,13 @@ namespace{
                         char msg[] = "SeRmanExpr error: undefined variable \"$%s\"";
                         _td.ptError(msg, name);
 		    }
+		    //std::cout << "binding: " << binding << std::endl;
+
 		    (*binding)[i] = index;
 		}
 	    }
+
+	    //std::cout << "adding binding" << std::endl;
 	    _bindstack.push_back(binding);
 	    return binding;
 	}
@@ -397,10 +428,14 @@ namespace{
         const char* exprstr = *RslStringIter(argv[1]);
         const char* varmapHandle = *RslStringIter(argv[2]);
 
+        //std::cout << "arg count: " << argc << std::endl;
+        //std::cout << "expression string: " << std::string(exprstr) << std::endl;
+
+
         if (!exprstr[0]) {
             // expression is blank - just return null handle
             *result = 0;
-	    argv[3]->GetResizer()->Resize(0);
+            //argv[3]->GetResizer()->Resize(0);
             return 0;
         }
 
@@ -426,19 +461,21 @@ namespace{
 
         *result = index;
         if (index) {
+        	//std::cout << "index: " << index << std::endl;
             // bind vars only if we have a valid expr
             SeRmanExpr* expr = td.exprs[index];
             expr->lookupAttrs();
             SeVarBinding& binding = *expr->bindVars(varmapHandle);
             int nvars = binding.size();
-	    argv[3]->GetResizer()->Resize(nvars);
+
+	   // argv[3]->GetResizer()->Resize(nvars);
             float* varIndices = *RslFloatArrayIter(argv[3]);
             for (int i = 0; i < nvars; i++) {
                 varIndices[i] = binding[i];
             }
         }
         else {
-	    argv[3]->GetResizer()->Resize(0);
+	    //argv[3]->GetResizer()->Resize(0);
         }
         return 0;
     }
@@ -487,6 +524,7 @@ namespace{
                 v[0] = v[1] = v[2] = 1;
 	    }
 
+        //std::cout << v << std::endl;
 	    Ci[0] = v[0];
 	    Ci[1] = v[1];
 	    Ci[2] = v[2];
@@ -499,7 +537,7 @@ namespace{
 
 extern "C" {
     static RslFunction funcs[] = {
-	// SeTokenize(inputStr) -> tokenized string
+	//  (inputStr) -> tokenized string
         {"string SeTokenize(string)", SeTokenize, NULL, NULL },
 
 	// SeExprBind(exprStr, varmap, varIndices[]) -> exprHandle

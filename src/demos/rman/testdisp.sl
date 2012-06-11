@@ -43,7 +43,7 @@ displacement testdisp(
     normal Nobj=transform("object",N);
     normal Nn=normalize(Nobj);
     color res=0;
-    uniform float used[];
+    uniform float used[4];
     uniform string varNames="(error) Pw P N";
     point Pw=transform("world",P);
     point Pobj=transform("object",P);
