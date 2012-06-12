@@ -27,3 +27,5 @@ add_definitions(${QT_DEFINITIONS})
 add_executable(editor ${src} ${inc_moc})
 target_link_libraries(editor ${QT_LIBRARIES} ${SEEXPR_LIBRARIES} ${RMAN_LIBS})
 install(TARGETS editor DESTINATION demo)
+
+ADD_SUBDIRECTORY (rman)
